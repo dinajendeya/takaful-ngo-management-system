@@ -1,0 +1,9 @@
+node_modules
+.agents
+.claude
+.cursor
+.devin
+
+./docs/archeticture.md
+./docs/database
+/src/generated/prisma
