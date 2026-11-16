@@ -12,6 +12,13 @@ datasource db {
   provider = "postgresql"
 }
 
+enum GazaGovernorate {
+  NORTH_GAZA
+  GAZA
+  DEIR_AL_BALAH
+  KHAN_YOUNIS
+}
+
 enum UserRole {
   ADMIN
   BRANCH_MANAGER
@@ -27,7 +34,7 @@ model Branch {
 
   name         String   @unique @db.VarChar(150)
 
-  governorate  String   @db.VarChar(100)
+  governorate  GazaGovernorate   @db.VarChar(100)
 
   address      String?  @db.Text
 

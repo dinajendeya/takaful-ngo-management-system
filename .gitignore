@@ -7,3 +7,5 @@ node_modules
 ./docs/archeticture.md
 ./docs/database
 /src/generated/prisma
+
+dist

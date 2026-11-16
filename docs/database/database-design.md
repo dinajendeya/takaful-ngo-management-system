@@ -262,6 +262,7 @@ InventoryTransaction
 ```sql
 user_role:                   ADMIN, BRANCH_MANAGER, FIELD_RESEARCHER,
                              INVENTORY_MANAGER, FINANCE_MANAGER
+gaza_governorate:            NORTH_GAZA, GAZA, DEIR_AL_BALAH, KHAN_YOUNIS,
 
 family_status:               PENDING, VERIFIED, REJECTED
 
@@ -306,9 +307,8 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
                              VERIFY, REJECT, DISTRIBUTE, APPROVE,
                              CANCEL
 
-gaza_governorate:            NORTH_GAZA, GAZA, DEIR_AL_BALAH, KHAN_YOUNIS,
                              RAFAH, ABROAD
-project_expense_category: FOOD_AID, CASH_AID, MEDICAL_AID, EDUCATION_AID, HOUSING_AID, ORPHAN_AID, WATER_AID, WINTER_AID, EMERGENCY_AID, TRANSPORTATION, STORAGE, DISTRIBUTION, PROJECT_SUPPLIES, PROJECT_EQUIPMENT, STAFF_SALARIES, TRAINING, OTHER                             
+                       
 ```
 
 ---
