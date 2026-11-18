@@ -1,16 +1,9 @@
-import express from "express";
-
-const app = express();
+import app from "./app.js";
+import "dotenv/config";
 
 const PORT = 3000;
 
-app.get("/api/health", (_req, res) => {
-  res.json({
-    success: true,
-    message: "Takaful API is running",
-  });
-});
-
 app.listen(PORT, () => {
+  console.log(process.env.DATABASE_URL);
   console.log(`Server running on port ${PORT}`);
 });

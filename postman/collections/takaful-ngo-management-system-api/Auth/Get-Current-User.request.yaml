@@ -1,0 +1,30 @@
+$kind: http-request
+name: Get Current User
+order: 4000
+method: GET
+url: '{{baseUrl}}/api/auth/me'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("User data is present", () => {
+          const data = pm.response.json().data;
+          pm.expect(data).to.have.property("publicId");
+          pm.expect(data).to.have.property("email");
+          pm.expect(data).to.have.property("role");
+      });
+examples: './.resources/Get-Current-User.resources/examples'

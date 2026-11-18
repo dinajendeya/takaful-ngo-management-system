@@ -1,0 +1,55 @@
+$kind: http-example
+name: '200 OK'
+request:
+  url: '{{baseUrl}}/api/branches?page=1&pageSize=20'
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": true,
+        "data": [
+          {
+            "publicId": "BRN-000001",
+            "name": "Gaza City Branch",
+            "governorate": "GAZA",
+            "address": "Al-Rimal, Gaza City, Palestine",
+            "phone": "0599000001",
+            "isActive": true,
+            "createdAt": "2026-11-16T21:00:00.000Z",
+            "updatedAt": "2026-11-16T21:00:00.000Z"
+          },
+          {
+            "publicId": "BRN-000002",
+            "name": "Khan Younis Branch",
+            "governorate": "KHAN_YOUNIS",
+            "address": "Al-Amal, Khan Younis, Palestine",
+            "phone": "0599000002",
+            "isActive": true,
+            "createdAt": "2026-11-16T21:05:00.000Z",
+            "updatedAt": "2026-11-16T21:05:00.000Z"
+          },
+          {
+            "publicId": "BRN-000003",
+            "name": "Rafah Branch",
+            "governorate": "RAFAH",
+            "address": "Tel Al-Sultan, Rafah, Palestine",
+            "phone": "0599000003",
+            "isActive": true,
+            "createdAt": "2026-11-16T21:10:00.000Z",
+            "updatedAt": "2026-11-16T21:10:00.000Z"
+          }
+        ],
+        "meta": {
+          "page": 1,
+          "pageSize": 20,
+          "total": 3,
+          "totalPages": 1
+        }
+      }

@@ -1,0 +1,9 @@
+$kind: collection
+name: Auth
+description: |-
+  Handles all authentication operations for the Takaful system.
+  Includes registration, login, token refresh, current user retrieval, and logout.
+  Login and Refresh Token requests automatically store tokens into environment variables.
+order: 1000
+auth:
+  type: noauth

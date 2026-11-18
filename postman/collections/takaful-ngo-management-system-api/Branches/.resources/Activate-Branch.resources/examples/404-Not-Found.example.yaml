@@ -1,0 +1,19 @@
+$kind: http-example
+name: '404 Not Found'
+request:
+  url: '{{baseUrl}}/api/branches/BRN-999999/activate'
+  method: PATCH
+response:
+  statusCode: 404
+  statusText: Not Found
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": false,
+        "reason": "No record matching the provided identifier (e.g. publicId) was found in the database.",
+        "message": "Resource not found"
+      }

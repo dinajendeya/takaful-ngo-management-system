@@ -17,6 +17,7 @@ enum GazaGovernorate {
   GAZA
   DEIR_AL_BALAH
   KHAN_YOUNIS
+  RAFAH
 }
 
 enum UserRole {
@@ -34,7 +35,7 @@ model Branch {
 
   name         String   @unique @db.VarChar(150)
 
-  governorate  GazaGovernorate   @db.VarChar(100)
+  governorate  GazaGovernorate
 
   address      String?  @db.Text
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { validate } from "../../common/middlewares/validate.middleware.js";
-import { branchController } from "./controllers/branch.controller.js";
+import * as branchController from "./controllers/branch.controller.js";
 import { createBranchSchema, updateBranchSchema, } from "./schemas/branch.schema.js";
 
 const router = Router();

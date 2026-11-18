@@ -1,0 +1,81 @@
+$kind: http-request
+name: Login
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/auth/login'
+description: |-
+  ## Login
+
+  Authenticates a user with their email and password and returns a signed JWT access token.
+
+  ### Authorization
+  No authentication required — this is a public endpoint.
+
+  ### Request Body Fields
+  | Field    | Type   | Required | Description |
+  |----------|--------|----------|-------------|
+  | email    | string | ✅ Yes   | Registered user email address |
+  | password | string | ✅ Yes   | User account password |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "accessToken": "<jwt>",
+      "user": {
+        "publicId": "USR-000001",
+        "fullName": "Ahmed Al-Masri",
+        "email": "ahmed.masri@takaful.ps",
+        "role": "ADMIN",
+        "isActive": true
+      }
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing or malformed fields)
+  - `401 Unauthorized` — Invalid email or password, or account is deactivated
+
+  ### Post-request Script
+  On success, the `accessToken` environment variable is automatically set to the returned JWT for use in subsequent authenticated requests.
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{adminEmail}}",
+      "password": "{{adminPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Access token is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("accessToken");
+      });
+      pm.test("User data is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("user");
+      });
+      pm.test("User has publicId", () => {
+          pm.expect(pm.response.json().data.user).to.have.property("publicId");
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.accessToken) {
+          pm.environment.set("accessToken", data.accessToken);
+      }
+examples: './.resources/Login.resources/examples'

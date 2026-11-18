@@ -1,0 +1,84 @@
+$kind: http-request
+name: Update Branch
+order: 4000
+method: PATCH
+url: '{{baseUrl}}/api/branches/{{branchPublicId}}'
+description: |-
+  ## Update Branch
+
+  Partially updates an existing branch's information. All fields are optional — only the fields provided in the request body will be updated.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only administrators are authorized to update branches.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | publicId  | string | ✅ Yes   | The public ID of the branch to update (e.g. `BRN-000001`). Stored in the `branchPublicId` environment variable. |
+
+  ### Request Body Fields (all optional)
+  | Field       | Type   | Description |
+  |-------------|--------|-------------|
+  | name        | string | New branch name (3–150 characters) |
+  | governorate | enum   | One of: `NORTH_GAZA`, `GAZA`, `DEIR_AL_BALAH`, `KHAN_YOUNIS`, `RAFAH` |
+  | address     | string | Updated physical address (max 500 characters) |
+  | phone       | string | Updated Palestinian mobile number — format: `05XXXXXXXX` or `+97005XXXXXXXX` |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "BRN-000001",
+      "name": "Gaza City Branch - Updated",
+      "governorate": "GAZA",
+      "address": "Al-Nasser, Gaza City, Palestine",
+      "phone": "0599000099",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-02T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (invalid field values)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks admin privileges
+  - `404 Not Found` — No branch found with the given `publicId`
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: publicId
+    value: '{{branchPublicId}}'
+    description: 'The public ID of the branch to update (e.g. BRN-000001)'
+body:
+  type: json
+  content: |-
+    {
+      "name": "Gaza City Branch - Updated",
+      "address": "Al-Nasser, Gaza City, Palestine",
+      "phone": "0599000099"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Branch publicId is unchanged", () => {
+          pm.expect(pm.response.json().data.publicId).to.eql(pm.environment.get("branchPublicId"));
+      });
+examples: './.resources/Update-Branch.resources/examples'

@@ -1,0 +1,35 @@
+$kind: http-request
+name: Logout
+order: 5000
+method: POST
+url: '{{baseUrl}}/api/auth/logout'
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refreshToken": "{{refreshToken}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+
+      pm.environment.set("accessToken", "");
+      pm.environment.set("refreshToken", "");
+examples: './.resources/Logout.resources/examples'
