@@ -65,6 +65,8 @@ model User {
 
   passwordHash   String   @map("password_hash")
 
+  refreshToken   String?  @unique @map("refresh_token")
+
   role           UserRole
 
   phone          String?  @db.VarChar(30)

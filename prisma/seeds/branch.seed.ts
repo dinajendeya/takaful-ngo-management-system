@@ -1,7 +1,7 @@
 import { prisma } from "../../src/lib/prisma.js";
 import { GazaGovernorate } from "../../src/generated/prisma/enums.js";
 
-async function seedBranches() {
+export const seedBranches = async () => {
   const branches = [
     {
       publicId: "BRN-000001",
@@ -53,16 +53,4 @@ async function seedBranches() {
       create: branch,
     });
   }
-
-  console.log("✅ Branches seeded");
-}
-
-async function main() {
-  await seedBranches();
-}
-
-main()
-  .catch(console.error)
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+};

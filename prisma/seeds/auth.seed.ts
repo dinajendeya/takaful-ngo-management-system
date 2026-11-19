@@ -1,10 +1,17 @@
+import { prisma } from "../../src/lib/prisma.js";
 import { UserRole } from "../../src/generated/prisma/enums.js";
 import { hashPassword } from "../../src/common/utils/password.js";
 
 export const seedUsers = async () => {
+  const [branch1, branch2] = await Promise.all([
+    prisma.branch.findUnique({ where: { publicId: "BRN-000001" }, select: { id: true } }),
+    prisma.branch.findUnique({ where: { publicId: "BRN-000002" }, select: { id: true } }),
+  ]);
+  if (!branch1 || !branch2) throw new Error("Seed branches before users");
+
   const passwordHash = await hashPassword("Admin@123");
 
-  return [
+  const users = [
     {
       publicId: "USR-00001",
       fullName: "Ahmad Abu Odeh",
@@ -21,7 +28,7 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.BRANCH_MANAGER,
       phone: "0599234567",
-      branchId: 1n,
+      branchId: branch1.id,
       isActive: true,
     },
     {
@@ -31,7 +38,7 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.BRANCH_MANAGER,
       phone: "0599345678",
-      branchId: 2n,
+      branchId: branch2.id,
       isActive: true,
     },
     {
@@ -41,7 +48,7 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.FIELD_RESEARCHER,
       phone: "0599456789",
-      branchId: 1n,
+      branchId: branch1.id,
       isActive: true,
     },
     {
@@ -51,7 +58,7 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.FIELD_RESEARCHER,
       phone: "0599567890",
-      branchId: 1n,
+      branchId: branch1.id,
       isActive: true,
     },
     {
@@ -61,7 +68,7 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.FIELD_RESEARCHER,
       phone: "0599678901",
-      branchId: 2n,
+      branchId: branch2.id,
       isActive: true,
     },
     {
@@ -71,7 +78,7 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.INVENTORY_MANAGER,
       phone: "0599789012",
-      branchId: 1n,
+      branchId: branch1.id,
       isActive: true,
     },
     {
@@ -81,7 +88,7 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.INVENTORY_MANAGER,
       phone: "0599890123",
-      branchId: 2n,
+      branchId: branch2.id,
       isActive: true,
     },
     {
@@ -91,7 +98,7 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.FINANCE_MANAGER,
       phone: "0599901234",
-      branchId: 1n,
+      branchId: branch1.id,
       isActive: true,
     },
     {
@@ -101,8 +108,16 @@ export const seedUsers = async () => {
       passwordHash,
       role: UserRole.FINANCE_MANAGER,
       phone: "0599012345",
-      branchId: 2n,
+      branchId: branch2.id,
       isActive: true,
     },
   ];
+
+  for (const user of users) {
+    await prisma.user.upsert({
+      where: { publicId: user.publicId },
+      update: {},
+      create: user,
+    });
+  }
 };

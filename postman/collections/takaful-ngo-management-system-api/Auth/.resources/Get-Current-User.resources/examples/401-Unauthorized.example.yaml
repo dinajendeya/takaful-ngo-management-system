@@ -1,0 +1,19 @@
+$kind: http-example
+name: '401 Unauthorized'
+request:
+  url: '{{baseUrl}}/api/auth/me'
+  method: GET
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": false,
+        "reason": "No valid JWT access token was provided, or the token has expired.",
+        "message": "Unauthorized"
+      }

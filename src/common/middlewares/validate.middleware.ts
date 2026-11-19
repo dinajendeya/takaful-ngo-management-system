@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
-import { ZodObject } from "zod";
+import type { ZodType } from "zod";
 
-export const validate = (schema: ZodObject) => (req: Request, res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
+export const validate = (schema: ZodType, source: "body" | "params" = "body") => (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(source === "params" ? req.params : req.body);
 
     if (!result.success) {
         return res.status(400).json({
@@ -15,7 +15,7 @@ export const validate = (schema: ZodObject) => (req: Request, res: Response, nex
         })
     }
 
-    req.body = result.data;
+    if (source === "body") req.body = result.data;
 
     next();
 };

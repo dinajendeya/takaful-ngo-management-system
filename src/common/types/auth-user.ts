@@ -8,7 +8,6 @@ export enum PrincipalType {
 
 export interface AuthUser {
   id: string;
-  publicId: string;
   email: string;
   type: PrincipalType;
   role?: UserRole;
