@@ -1,0 +1,61 @@
+$kind: http-request
+name: Logout
+order: 5000
+method: POST
+url: '{{baseUrl}}/api/auth/logout'
+description: |-
+  ## Logout
+
+  Invalidates the current session by clearing the access and refresh tokens. The provided refresh token is revoked server-side.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  ### Request Body Fields
+  | Field        | Type   | Required | Description |
+  |--------------|--------|----------|-------------|
+  | refreshToken | string | ✅ Yes   | The refresh token to revoke |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": null
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+
+  ### Post-request Script
+  On success, the `accessToken` and `refreshToken` environment variables are automatically cleared.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refreshToken": "{{refreshToken}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+
+      pm.environment.set("accessToken", "");
+      pm.environment.set("refreshToken", "");
+examples: './.resources/Logout.resources/examples'

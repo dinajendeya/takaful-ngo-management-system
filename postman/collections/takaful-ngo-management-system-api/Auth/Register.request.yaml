@@ -1,0 +1,89 @@
+$kind: http-request
+name: Create User
+order: 2000
+method: POST
+url: '{{baseUrl}}/api/auth/users'
+description: |-
+  ## Create User
+
+  Creates a new user account in the Takaful system. Only administrators are authorized to perform this action.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Obtain the token from the Login endpoint and store it in the `accessToken` environment variable.
+
+  ### Request Body Fields
+  | Field       | Type   | Required | Description |
+  |-------------|--------|----------|-------------|
+  | fullName    | string | ✅ Yes   | User's full name (3–150 characters) |
+  | email       | string | ✅ Yes   | Unique email address |
+  | password    | string | ✅ Yes   | Password (min 8 chars, must include uppercase, lowercase, number, and special character) |
+  | role        | enum   | ✅ Yes   | One of: `ADMIN`, `BRANCH_MANAGER`, `FIELD_RESEARCHER`, `DATA_ENTRY` |
+  | branchId    | number | ❌ No    | Internal branch ID to assign the user to |
+  | phone       | string | ❌ No    | Palestinian mobile number — format: `05XXXXXXXX` or `+97005XXXXXXXX` |
+
+  ### Success Response `201 Created`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "USR-000001",
+      "fullName": "Ahmed Al-Masri",
+      "email": "ahmed.masri@takaful.ps",
+      "role": "FIELD_RESEARCHER",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing required fields or invalid values)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks admin privileges
+  - `409 Conflict` — A user with the same email already exists
+
+  ### Post-request Script
+  On success, the `userPublicId` environment variable is automatically set to the newly created user's `publicId` for use in subsequent requests.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Ahmed Al-Masri",
+      "email": "ahmed.masri@takaful.ps",
+      "password": "Secure@123456",
+      "role": "FIELD_RESEARCHER",
+      "phone": "0599000001"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("User publicId is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("publicId");
+      });
+      pm.test("User email matches", () => {
+          pm.expect(pm.response.json().data.email).to.eql("ahmed.masri@takaful.ps");
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.publicId) {
+          pm.environment.set("userPublicId", data.publicId);
+      }
+examples: './.resources/Create-User.resources/examples'

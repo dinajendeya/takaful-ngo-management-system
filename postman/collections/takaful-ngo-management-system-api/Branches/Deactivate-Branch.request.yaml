@@ -1,0 +1,66 @@
+$kind: http-request
+name: Deactivate Branch
+order: 6000
+method: PATCH
+url: '{{baseUrl}}/api/branches/{{branchPublicId}}/deactivate'
+description: |-
+  ## Deactivate Branch
+
+  Sets a branch's status to **inactive**, suspending its operations. Deactivated branches cannot be assigned to new users or families. Existing data is preserved and the branch can be reactivated at any time.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only administrators are authorized to deactivate branches.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | publicId  | string | ✅ Yes   | The public ID of the branch to deactivate (e.g. `BRN-000001`). Stored in the `branchPublicId` environment variable. |
+
+  ### Request Body
+  No request body required.
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "BRN-000001",
+      "name": "Gaza City Branch",
+      "governorate": "GAZA",
+      "isActive": false,
+      "updatedAt": "2024-01-02T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks admin privileges
+  - `404 Not Found` — No branch found with the given `publicId`
+  - `409 Conflict` — Branch is already inactive
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: publicId
+    value: '{{branchPublicId}}'
+    description: 'The public ID of the branch to deactivate (e.g. BRN-000001)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Branch is inactive", () => {
+          pm.expect(pm.response.json().data.isActive).to.eql(false);
+      });
+examples: './.resources/Deactivate-Branch.resources/examples'

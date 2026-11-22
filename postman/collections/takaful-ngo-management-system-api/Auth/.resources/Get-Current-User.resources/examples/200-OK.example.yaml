@@ -1,0 +1,26 @@
+$kind: http-example
+name: '200 OK'
+request:
+  url: '{{baseUrl}}/api/auth/me'
+  method: GET
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": true,
+        "data": {
+          "publicId": "USR-000001",
+          "fullName": "Ahmed Al-Masri",
+          "email": "ahmed.masri@takaful.ps",
+          "role": "ADMIN",
+          "isActive": true,
+          "createdAt": "2026-11-19T10:00:00.000Z",
+          "updatedAt": "2026-11-19T10:00:00.000Z"
+        }
+      }

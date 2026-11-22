@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GazaGovernorate } from "../../../generated/prisma/enums.js";
 
 export const createBranchSchema = z.object({
   name: z
@@ -6,9 +7,7 @@ export const createBranchSchema = z.object({
     .min(3, {message:"Branch name must be at least 3 characters",})
     .max(150, {message:"Branch name cannot exceed 150 characters",}),
 
-  governorate: z.enum(
-    [ "NORTH_GAZA", "GAZA", "DEIR_AL_BALAH", "KHAN_YOUNIS", "RAFAH"],
-    { message: "Please select a valid Gaza governorate"}),
+  governorate: z.enum(GazaGovernorate, { message: "Please select a valid Gaza governorate"}),
 
   address: z.string().max(500, {message: "Address cannot exceed 500 characters",}).optional(),
 

@@ -1,0 +1,7 @@
+$kind: collection
+name: Auth
+description: |-
+  Handles authentication and user account management for the Takaful NGO system.
+  Includes login, user creation, password change, current user retrieval, and logout.
+  Most endpoints require a valid Bearer JWT access token obtained from the Login endpoint.
+order: 1000

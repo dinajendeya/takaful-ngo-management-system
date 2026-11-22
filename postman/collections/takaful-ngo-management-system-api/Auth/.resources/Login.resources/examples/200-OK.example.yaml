@@ -1,0 +1,27 @@
+$kind: http-example
+name: '200 OK'
+request:
+  url: '{{baseUrl}}/api/auth/login'
+  method: POST
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": true,
+        "data": {
+          "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwdWJsaWNJZCI6IlVTUi0wMDAwMDEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3MzIwMDAwMDAsImV4cCI6MTczMjA4NjQwMH0.example",
+          "user": {
+            "publicId": "USR-000001",
+            "fullName": "Ahmed Al-Masri",
+            "email": "ahmed.masri@takaful.ps",
+            "role": "ADMIN",
+            "isActive": true
+          }
+        }
+      }

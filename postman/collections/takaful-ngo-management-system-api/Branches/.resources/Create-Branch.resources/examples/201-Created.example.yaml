@@ -1,0 +1,27 @@
+$kind: http-example
+name: '201 Created'
+request:
+  url: '{{baseUrl}}/api/branches'
+  method: POST
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": true,
+        "data": {
+          "publicId": "BRN-000001",
+          "name": "Gaza City Branch",
+          "governorate": "GAZA",
+          "address": "Al-Rimal, Gaza City, Palestine",
+          "phone": "0599000001",
+          "isActive": true,
+          "createdAt": "2026-11-16T21:00:00.000Z",
+          "updatedAt": "2026-11-16T21:00:00.000Z"
+        }
+      }

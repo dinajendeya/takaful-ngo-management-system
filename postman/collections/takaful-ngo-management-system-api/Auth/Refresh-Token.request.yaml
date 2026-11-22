@@ -1,0 +1,81 @@
+$kind: http-request
+name: Change Password
+order: 3000
+method: PATCH
+url: '{{baseUrl}}/api/auth/users/{{userPublicId}}/change-password'
+description: |-
+  ## Change Password
+
+  Updates the password for a specific user account. The current password must be provided for verification before the new password is set.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | publicId  | string | ✅ Yes   | The user's public ID (e.g. `USR-000001`). Stored in the `userPublicId` environment variable. |
+
+  ### Request Body Fields
+  | Field           | Type   | Required | Description |
+  |-----------------|--------|----------|-------------|
+  | currentPassword | string | ✅ Yes   | The user's existing password |
+  | newPassword     | string | ✅ Yes   | New password (min 8 chars, must include uppercase, lowercase, number, and special character) |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "USR-000001",
+      "fullName": "Ahmed Al-Masri",
+      "email": "ahmed.masri@takaful.ps",
+      "role": "FIELD_RESEARCHER",
+      "isActive": true,
+      "updatedAt": "2024-01-02T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing fields or password does not meet requirements)
+  - `401 Unauthorized` — Missing or invalid access token, or current password is incorrect
+  - `404 Not Found` — No user found with the given `publicId`
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: publicId
+    value: '{{userPublicId}}'
+    description: 'The public ID of the user (e.g. USR-000001)'
+body:
+  type: json
+  content: |-
+    {
+      "currentPassword": "Secure@123456",
+      "newPassword": "NewSecure@789012"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("User publicId is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("publicId");
+      });
+      pm.test("User publicId matches", () => {
+          pm.expect(pm.response.json().data.publicId).to.eql(pm.environment.get("userPublicId"));
+      });
+examples: './.resources/Change-Password.resources/examples'
