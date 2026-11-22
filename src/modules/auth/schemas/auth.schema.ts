@@ -16,11 +16,10 @@ export const loginSchema = z.object({
   email: emailSchema,
   password: z.string({message: "Password is required",})
     .max(100, { message: "Password cannot exceed 100 characters" })
-    .refine((password) => new TextEncoder().encode(password).length <= 72, { message: "Password cannot exceed 72 UTF-8 bytes" }),
 });
 
 export const refreshSchema = z.object({
-  refreshToken: z.string({ message: "Refresh token is required" }).min(1, { message: "Refresh token is required" }),
+  refreshToken: z.string({ message: "Refresh token is required" })
 });
 
 export const logoutSchema = z.object({}).optional();

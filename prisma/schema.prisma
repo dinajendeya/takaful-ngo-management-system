@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -11,6 +9,10 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
 
 enum GazaGovernorate {
   NORTH_GAZA
@@ -28,62 +30,246 @@ enum UserRole {
   FINANCE_MANAGER
 }
 
+enum FamilyStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum Relationship {
+  HEAD
+  SPOUSE
+  SON
+  DAUGHTER
+  FATHER
+  MOTHER
+  BROTHER
+  SISTER
+  GRANDFATHER
+  GRANDMOTHER
+  OTHER
+}
+
+enum EmploymentStatus {
+  EMPLOYED
+  UNEMPLOYED
+  SELF_EMPLOYED
+  STUDENT
+  RETIRED
+  FREELANCER
+  OTHER
+}
+
+enum EducationLevel {
+  NONE
+  KINDERGARTEN
+  PRIMARY
+  PREPARATORY
+  SECONDARY
+  DIPLOMA
+  BACHELOR
+  MASTER
+  PHD
+}
+
+enum HousingType {
+  OWNER
+  RENT
+  HOSTING
+  TENT
+  FULL_HOUSE
+  PARTIALLY_DESTROYED
+  TOTALLY_DESTROYED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────
+
 model Branch {
-  id           BigInt   @id @default(autoincrement())
+  id          BigInt          @id @default(autoincrement())
+  name        String          @unique @db.VarChar(150)
+  governorate GazaGovernorate
+  address     String?         @db.Text
+  phone       String?         @db.VarChar(30)
+  isActive    Boolean         @default(true) @map("is_active")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
 
-  publicId     String   @unique @map("public_id")
-
-  name         String   @unique @db.VarChar(150)
-
-  governorate  GazaGovernorate
-
-  address      String?  @db.Text
-
-  phone        String?  @db.VarChar(30)
-
-  isActive     Boolean  @default(true) @map("is_active")
-
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  users        User[]
+  users       User[]
+  families      Family[]
 
   @@map("branches")
 }
 
 model User {
   id             BigInt   @id @default(autoincrement())
-
-  publicId       String   @unique @map("public_id")
-
   branchId       BigInt?  @map("branch_id")
-
   fullName       String   @map("full_name") @db.VarChar(150)
-
   email          String   @unique @db.VarChar(255)
-
   passwordHash   String   @map("password_hash")
-
   refreshToken   String?  @unique @map("refresh_token")
-
   role           UserRole
-
   phone          String?  @db.VarChar(30)
-
   isActive       Boolean  @default(true) @map("is_active")
-
   lastLoginAt    DateTime? @map("last_login_at")
-
   createdAt      DateTime @default(now()) @map("created_at")
-
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  branch         Branch? @relation(fields: [branchId], references: [id])
+  branch         Branch?  @relation(fields: [branchId], references: [id])
+
+  // Family module relations
+  createdFamilies         Family[]         @relation("FamilyCreatedBy")
+  verifiedFamilies        Family[]         @relation("FamilyVerifiedBy")
+  createdFamilyMembers    FamilyMember[]   @relation("FamilyMemberCreatedBy")
+  assessments             FamilyAssessment[] @relation("FamilyAssessedBy")
+  reviewedFamilyRequests  FamilyRequest[]  @relation("FamilyRequestReviewedBy")
 
   @@index([role])
-
   @@index([branchId])
-
   @@map("users")
+}
+
+model Address {
+  id              BigInt          @id @default(autoincrement())
+  governorate     GazaGovernorate
+  city            String          @db.VarChar(100)
+  neighborhood    String?         @db.VarChar(200)
+  street          String?         @db.VarChar(200)
+  nearbyLandmark  String?         @map("nearby_landmark") @db.VarChar(200)
+  additionalDetails String?       @map("additional_details") @db.Text
+
+  originalFamilies Family[]       @relation("OriginalAddress")
+  currentFamilies  Family[]       @relation("CurrentAddress")
+
+  @@map("addresses")
+}
+
+model Family {
+  id                BigInt        @id @default(autoincrement())
+  branchId          BigInt        @map("branch_id")
+  passwordHash      String        @map("password_hash")
+  primaryPhone      String        @map("primary_phone") @db.VarChar(30)
+  emergencyPhone    String?       @map("emergency_phone") @db.VarChar(30)
+  originalAddressId BigInt        @map("original_address_id")
+  currentAddressId  BigInt        @map("current_address_id")
+  status            FamilyStatus  @default(PENDING)
+  createdById       BigInt        @map("created_by")
+  verifiedById      BigInt?       @map("verified_by")
+  verifiedAt        DateTime?     @map("verified_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+
+  branch            Branch        @relation(fields: [branchId], references: [id])
+  originalAddress   Address       @relation("OriginalAddress", fields: [originalAddressId], references: [id])
+  currentAddress    Address       @relation("CurrentAddress", fields: [currentAddressId], references: [id])
+  createdBy         User          @relation("FamilyCreatedBy", fields: [createdById], references: [id])
+  verifiedBy        User?         @relation("FamilyVerifiedBy", fields: [verifiedById], references: [id])
+
+  members           FamilyMember[]
+  assessment        FamilyAssessment?
+  requests          FamilyRequest[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([verifiedById])
+  @@index([branchId])
+  @@map("families")
+}
+
+model FamilyMember {
+  id                BigInt           @id @default(autoincrement())
+  familyId          BigInt           @map("family_id")
+  createdById       BigInt           @map("created_by")
+  nationalId        String           @unique @map("national_id") @db.VarChar(20)
+  fullName          String           @map("full_name") @db.VarChar(200)
+  gender            Gender
+  birthDate         DateTime         @map("birth_date")
+  phone             String?          @db.VarChar(30)  
+  relationship      Relationship     
+  educationLevel    EducationLevel?  @map("education_level")
+  educationMajor    String?          @map("education_major") @db.VarChar(200)
+  educationFees     Decimal?         @map("education_fees") @db.Decimal(10, 2)
+  employmentStatus  EmploymentStatus @default(UNEMPLOYED) @map("employment_status")
+  monthlyIncome     Decimal          @default(0) @map("monthly_income") @db.Decimal(10, 2)
+  hasDisability     Boolean          @default(false) @map("has_disability")
+  disabilityType    String?          @map("disability_type") @db.VarChar(150)
+  hasChronicDisease Boolean          @default(false) @map("has_chronic_disease")
+  diseaseName       String?          @map("disease_name") @db.VarChar(150)
+  maritalStatus     MaritalStatus    @default(SINGLE) @map("marital_status")
+  isOrphan          Boolean          @default(false) @map("is_orphan")
+  isBasedInGaza     Boolean          @default(true) @map("is_based_in_gaza")
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  family            Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  createdBy         User             @relation("FamilyMemberCreatedBy", fields: [createdById], references: [id])
+
+  requests          FamilyRequest[]
+
+  @@index([familyId])
+  @@index([createdById])
+  @@map("family_members")
+}
+
+model FamilyAssessment {
+  id                   BigInt      @id @default(autoincrement())
+  familyId             BigInt      @unique @map("family_id")
+  assessedById         BigInt      @map("assessed_by")
+  monthlyFamilyIncome  Decimal     @map("monthly_family_income") @db.Decimal(10, 2)
+  rentCost             Decimal?    @map("rent_cost") @db.Decimal(10, 2)
+  housingType          HousingType @map("housing_type")
+  isDisplaced          Boolean     @map("is_displaced")
+  isRegisteredInCamp   Boolean     @map("is_registered_in_camp")
+  hasElectricity       Boolean     @map("has_electricity")
+  hasInternet          Boolean     @map("has_internet")
+  notes                String?     @db.Text
+  assessedAt           DateTime    @default(now()) @map("assessed_at")
+
+  family               Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  assessedBy           User        @relation("FamilyAssessedBy", fields: [assessedById], references: [id])
+
+  @@index([assessedById])
+  @@map("family_assessments")
+}
+
+model FamilyRequest {
+  id              BigInt        @id @default(autoincrement())
+  familyId        BigInt        @map("family_id")
+  requestedById   BigInt        @map("requested_by")
+  titl            String        @db.VarChar(200)
+  beforeData      Json          @map("before_data")
+  afterData       Json          @map("after_data")
+  justification   String?       @db.Text
+  status          RequestStatus @default(PENDING)
+  reviewedById    BigInt?       @map("reviewed_by")
+  reviewedAt      DateTime?     @map("reviewed_at")
+  rejectionReason String?       @map("rejection_reason") @db.Text
+
+  family          Family        @relation(fields: [familyId], references: [id])
+  requestedBy     FamilyMember  @relation(fields: [requestedById], references: [id])
+  reviewedBy      User?         @relation("FamilyRequestReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([familyId])
+  @@index([requestedById])
+  @@index([reviewedById])
+  @@index([status])
+  @@map("family_requests")
 }

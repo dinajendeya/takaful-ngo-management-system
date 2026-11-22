@@ -1,10 +1,9 @@
 import { prisma } from "../../../lib/prisma.js";
 import type { CreateBranchDto, UpdateBranchDto } from "../schemas/branch.schema.js";
 
-export const create = async (data: CreateBranchDto & { publicId: string }) =>
+export const create = async (data: CreateBranchDto) =>
   prisma.branch.create({
     data: {
-      publicId: data.publicId,
       name: data.name,
       governorate: data.governorate,
       ...(data.address && { address: data.address }),
@@ -18,15 +17,12 @@ export const findMany = async () =>
 export const findById = async (id: bigint) =>
   prisma.branch.findUnique({ where: { id } });
 
-export const findByPublicId = async (publicId: string) =>
-  prisma.branch.findUnique({ where: { publicId } });
-
 export const findByName = async (name: string) =>
   prisma.branch.findUnique({ where: { name } });
 
-export const update = async (publicId: string, data: UpdateBranchDto) =>
+export const update = async (id: bigint, data: UpdateBranchDto) =>
   prisma.branch.update({
-    where: { publicId },
+    where: { id },
     data: {
       ...(data.name && { name: data.name }),
       ...(data.governorate && { governorate: data.governorate }),
@@ -35,15 +31,15 @@ export const update = async (publicId: string, data: UpdateBranchDto) =>
     },
   });
 
-export const activate = async (publicId: string) =>
+export const activate = async (id: bigint) =>
   prisma.branch.update({
-    where: { publicId },
+    where: { id },
     data: { isActive: true },
   });
 
-export const deactivate = async (publicId: string) =>
+export const deactivate = async (id: bigint) =>
   prisma.branch.update({
-    where: { publicId },
+    where: { id },
     data: { isActive: false },
   });
 

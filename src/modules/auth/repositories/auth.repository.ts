@@ -3,7 +3,6 @@ import type { CreateUserDto } from "../schemas/auth.schema.js";
 
 const userSelect = {
   id: true,
-  publicId: true,
   branchId: true,
   fullName: true,
   email: true,
@@ -13,13 +12,12 @@ const userSelect = {
   lastLoginAt: true,
   createdAt: true,
   updatedAt: true,
-  branch: { select: { publicId: true, name: true, governorate: true, address: true, phone: true } },
+  branch: { select: { id: true, name: true, governorate: true, address: true, phone: true } },
 } as const;
 
-export const create = async (data: CreateUserDto & {publicId: string, passwordHash: string}) =>
+export const create = async (data: CreateUserDto & {passwordHash: string}) =>
   prisma.user.create({
     data: {
-      publicId: data.publicId,
       fullName: data.fullName,
       email: data.email,
       passwordHash: data.passwordHash,
