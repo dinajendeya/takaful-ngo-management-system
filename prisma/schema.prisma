@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GazaGovernorate {
+  NORTH_GAZA
+  GAZA
+  DEIR_AL_BALAH
+  KHAN_YOUNIS
+}
+
+enum UserRole {
+  ADMIN
+  BRANCH_MANAGER
+  FIELD_RESEARCHER
+  INVENTORY_MANAGER
+  FINANCE_MANAGER
+}
+
+model Branch {
+  id           BigInt   @id @default(autoincrement())
+
+  publicId     String   @unique @map("public_id")
+
+  name         String   @unique @db.VarChar(150)
+
+  governorate  GazaGovernorate   @db.VarChar(100)
+
+  address      String?  @db.Text
+
+  phone        String?  @db.VarChar(30)
+
+  isActive     Boolean  @default(true) @map("is_active")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  users        User[]
+
+  @@map("branches")
+}
+
+model User {
+  id             BigInt   @id @default(autoincrement())
+
+  publicId       String   @unique @map("public_id")
+
+  branchId       BigInt?  @map("branch_id")
+
+  fullName       String   @map("full_name") @db.VarChar(150)
+
+  email          String   @unique @db.VarChar(255)
+
+  passwordHash   String   @map("password_hash")
+
+  role           UserRole
+
+  phone          String?  @db.VarChar(30)
+
+  isActive       Boolean  @default(true) @map("is_active")
+
+  lastLoginAt    DateTime? @map("last_login_at")
+
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  branch         Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([role])
+
+  @@index([branchId])
+
+  @@map("users")
+}
