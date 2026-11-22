@@ -3,6 +3,7 @@ import { hashRefreshToken, signAccessToken, signRefreshToken, verifyRefreshToken
 import { hashPassword, verifyPassword } from "../../../common/utils/password.js";
 import { PrincipalType, type AuthUser } from "../../../common/types/auth-user.js";
 import type { LoginDto, RefreshDto, CreateUserDto, ChangePasswordDto } from "../schemas/auth.schema.js";
+import { hashSync } from "bcrypt";
 
 const toAuthUser = (user: { id: bigint; email: string; role: NonNullable<AuthUser["role"]>; branchId: bigint | null }): AuthUser => ({
   id: user.id.toString(),
@@ -16,6 +17,28 @@ const parseId = (id: string) => {
   if (!/^\d+$/.test(id)) throw new Error("Invalid user ID");
   return BigInt(id);
 };
+
+/*
+export const refreshing = async (token: RefreshDto) => {
+  try { 
+    let authUser =  verifyRefreshToken(token.refreshToken)
+    return rotated = await authRepository.rotateRefreshToken(parseId(authUser.id), hashRefreshToken(token.refreshToken), hashRefreshToken(signRefreshToken(authUser)));
+  } catch {throw new Error("invalid token")};
+  }
+
+  export const refreshing2 = async (id: bigint) => {
+    const existingUser = await authRepository.findById(id);
+    if(!existingUser) throw new Error("no existing User");
+
+    const authUser = toAuthUser(existingUser);
+    const newRefreshtoken = signRefreshToken(authUser);
+    const hashedRefToken = hashRefreshToken(newRefreshtoken);
+
+    return rotated = await authRepository.saveRefreshToken(id, hashedRefToken);
+    
+  }
+  
+*/
 
 export const login = async (data: LoginDto) => {
   const user = await authRepository.findByEmail(data.email);
@@ -39,7 +62,6 @@ export const createUser = async (data: CreateUserDto) => {
   return authRepository.create({
     ...data,
     passwordHash,
-    publicId: `USR-${Date.now()}`,
   });
 };
 
@@ -60,10 +82,32 @@ export const refresh = async (data: RefreshDto) => {
   return { accessToken: signAccessToken(authUser), refreshToken: nextRefreshToken };
 };
 
+
 export const logout = async (id: string) => {
   await authRepository.removeRefreshToken(parseId(id));
   return { message: "Logged out successfully" };
 };
+
+export const refreshing = async(data: RefreshDto) => {
+  let tokenUser: AuthUser;
+
+  try {tokenUser = verifyRefreshToken(data.refreshToken)}
+  catch {throw new Error("invalid token")}
+
+  const hashedCurrentToken = hashRefreshToken(data.refreshToken)
+  const existingUser = await authRepository.findByRefreshToken(hashedCurrentToken);
+  if(!existingUser || !existingUser.isActive || parseId(tokenUser.id) !== existingUser.id) throw new Error("invalid token");
+
+  const authUser = toAuthUser(existingUser);
+  const newRefreshToken = signRefreshToken(authUser);
+  const newAccessToken = signAccessToken(authUser);
+  const hashedNewRefreshToken = hashRefreshToken(newRefreshToken);
+
+  await authRepository.rotateRefreshToken(parseId(authUser.id), hashedCurrentToken, hashedNewRefreshToken)
+  return {newAccessToken, newRefreshToken};
+
+} 
+
 
 export const changePassword = async (id: string, data: ChangePasswordDto, requesterId: string) => {
   if (id !== requesterId) throw new Error("You can only change your own password");

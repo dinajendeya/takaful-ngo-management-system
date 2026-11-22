@@ -10,7 +10,5 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   try {
     req.user = verifyAccessToken(token);
     return next();
-  } catch {
-    return res.status(401).json({ success: false, message: "Invalid token" });
-  }
+  } catch { return res.status(401).json({ success: false, message: "Invalid token" }) }
 };

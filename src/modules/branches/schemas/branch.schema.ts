@@ -19,6 +19,10 @@ export const createBranchSchema = z.object({
 export const updateBranchSchema =
   createBranchSchema.partial();
 
+export const branchIdParamsSchema = z.object({
+  id: z.string().regex(/^[1-9]\d*$/, { message: "Branch ID must be a positive integer" }),
+});
+
 export type CreateBranchDto =
   z.infer<typeof createBranchSchema>;
 

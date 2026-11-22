@@ -10,7 +10,6 @@ export const createBranch = async (data: CreateBranchDto) => {
 
   return branchRepository.create({
     ...data,
-    publicId: `BRN-${Date.now()}`,
   });
 };
 
@@ -18,8 +17,13 @@ export const getBranches = async () => {
   return branchRepository.findMany();
 };
 
-export const getBranchByPublicId = async (publicId: string) => {
-  const branch = await branchRepository.findByPublicId(publicId);
+const parseId = (id: string) => {
+  if (!/^[1-9]\d*$/.test(id)) throw new Error("Invalid branch ID");
+  return BigInt(id);
+};
+
+export const getBranchById = async (id: string) => {
+  const branch = await branchRepository.findById(parseId(id));
 
   if (!branch) {
     throw new Error("Branch not found");
@@ -29,34 +33,37 @@ export const getBranchByPublicId = async (publicId: string) => {
 };
 
 export const updateBranch = async (
-  publicId: string,
+  id: string,
   data: UpdateBranchDto
 ) => {
-  const branch = await branchRepository.findByPublicId(publicId);
+  const branchId = parseId(id);
+  const branch = await branchRepository.findById(branchId);
 
   if (!branch) {
     throw new Error("Branch not found");
   }
 
-  return branchRepository.update(publicId, data);
+  return branchRepository.update(branchId, data);
 };
 
-export const activateBranch = async (publicId: string) => {
-  const branch = await branchRepository.findByPublicId(publicId);
+export const activateBranch = async (id: string) => {
+  const branchId = parseId(id);
+  const branch = await branchRepository.findById(branchId);
 
   if (!branch) {
     throw new Error("Branch not found");
   }
 
-  return branchRepository.activate(publicId);
+  return branchRepository.activate(branchId);
 };
 
-export const deactivateBranch = async (publicId: string) => {
-  const branch = await branchRepository.findByPublicId(publicId);
+export const deactivateBranch = async (id: string) => {
+  const branchId = parseId(id);
+  const branch = await branchRepository.findById(branchId);
 
   if (!branch) {
     throw new Error("Branch not found");
   }
 
-  return branchRepository.deactivate(publicId);
+  return branchRepository.deactivate(branchId);
 };

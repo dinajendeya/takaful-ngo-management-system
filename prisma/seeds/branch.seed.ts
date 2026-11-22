@@ -4,7 +4,6 @@ import { GazaGovernorate } from "../../src/generated/prisma/enums.js";
 export const seedBranches = async () => {
   const branches = [
     {
-      publicId: "BRN-000001",
       name: "Gaza Branch",
       governorate: GazaGovernorate.GAZA,
       address: "Gaza City",
@@ -12,7 +11,6 @@ export const seedBranches = async () => {
     },
 
     {
-      publicId: "BRN-000002",
       name: "North Gaza Branch",
       governorate: GazaGovernorate.NORTH_GAZA,
       address: "Jabalia",
@@ -20,7 +18,6 @@ export const seedBranches = async () => {
     },
 
     {
-      publicId: "BRN-000003",
       name: "Deir Al Balah Branch",
       governorate: GazaGovernorate.DEIR_AL_BALAH,
       address: "Deir Al Balah",
@@ -28,7 +25,6 @@ export const seedBranches = async () => {
     },
 
     {
-      publicId: "BRN-000004",
       name: "Khan Younis Branch",
       governorate: GazaGovernorate.KHAN_YOUNIS,
       address: "Khan Younis",
@@ -36,7 +32,6 @@ export const seedBranches = async () => {
     },
 
     {
-      publicId: "BRN-000005",
       name: "Rafah Branch",
       governorate: GazaGovernorate.RAFAH,
       address: "Rafah",
@@ -46,9 +41,7 @@ export const seedBranches = async () => {
 
   for (const branch of branches) {
     await prisma.branch.upsert({
-      where: {
-        publicId: branch.publicId,
-      },
+      where: { name: branch.name },
       update: {},
       create: branch,
     });
