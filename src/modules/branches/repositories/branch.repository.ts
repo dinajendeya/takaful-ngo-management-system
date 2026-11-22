@@ -1,7 +1,21 @@
 import { prisma } from "../../../lib/prisma.js";
-import type { CreateBranchDto, UpdateBranchDto } from "../schemas/branch.schema.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 
-export const create = async (data: CreateBranchDto) =>
+type CreateBranchData = {
+  name: string;
+  governorate: Prisma.BranchCreateInput["governorate"];
+  address?: string | undefined;
+  phone?: string | undefined;
+};
+
+type UpdateBranchData = {
+  name?: string | undefined;
+  governorate?: Prisma.BranchCreateInput["governorate"] | undefined;
+  address?: string | undefined;
+  phone?: string | undefined;
+};
+
+export const create = async (data: CreateBranchData) =>
   prisma.branch.create({
     data: {
       name: data.name,
@@ -20,7 +34,7 @@ export const findById = async (id: bigint) =>
 export const findByName = async (name: string) =>
   prisma.branch.findUnique({ where: { name } });
 
-export const update = async (id: bigint, data: UpdateBranchDto) =>
+export const update = async (id: bigint, data: UpdateBranchData) =>
   prisma.branch.update({
     where: { id },
     data: {

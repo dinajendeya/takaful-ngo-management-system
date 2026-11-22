@@ -168,7 +168,7 @@ model Family {
   id                BigInt        @id @default(autoincrement())
   branchId          BigInt        @map("branch_id")
   passwordHash      String        @map("password_hash")
-  primaryPhone      String        @map("primary_phone") @db.VarChar(30)
+  primaryPhone      String        @unique @map("primary_phone") @db.VarChar(30)
   emergencyPhone    String?       @map("emergency_phone") @db.VarChar(30)
   originalAddressId BigInt        @map("original_address_id")
   currentAddressId  BigInt        @map("current_address_id")
@@ -254,7 +254,7 @@ model FamilyRequest {
   id              BigInt        @id @default(autoincrement())
   familyId        BigInt        @map("family_id")
   requestedById   BigInt        @map("requested_by")
-  titl            String        @db.VarChar(200)
+  title           String        @db.VarChar(200)
   beforeData      Json          @map("before_data")
   afterData       Json          @map("after_data")
   justification   String?       @db.Text
