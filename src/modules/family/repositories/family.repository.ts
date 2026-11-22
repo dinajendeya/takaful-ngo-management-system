@@ -1,55 +1,120 @@
-import type { createFamilyDTO, createFamilyAssessmentDTO, createFamilyMemberDTO } from "../schemas/family.schema.js"
-import {prisma} from "../../../lib/prisma.js";
-import type {FamilyStatus} from "../../../generated/prisma/enums.js"
+import { FamilyStatus, HousingType } from "../../../generated/prisma/enums.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
+import { prisma } from "../../../lib/prisma.js";
 
-const selectedFamily = {
-    id: true,
-    head_family: true,
-    address: {
-        id: true,
-        city: true,
-        street: true,
-        nearLandMark: true
-    }
-    familyAssessment: {
-        is_displaced: true,
-        has_internet: true,
-        has_electricity: true
+const familyInclude = {
+  branch: true,
+  originalAddress: true,
+  currentAddress: true,
+  members: true,
+  assessment: true,
+} as const;
 
-}
-export const createFamily = async(data: createFamilyDTO & createFamilyAssessmentDTO){
-    return prisma.family.create({
-        data: {
-            headId: data.headId,
-            verifidBy: data.verified_by,
-            has_electricity: data.has_electricity,
-            has_internet: data.has_internet
-        },
-        select: selectedFamily
-    })
-}
+type CreateFamilyData = {
+  branchId: bigint;
+  createdById: bigint;
+  passwordHash: string;
+  primaryPhone: string;
+  emergencyPhone?: string;
+  originalAddress: Prisma.AddressCreateWithoutOriginalFamiliesInput;
+  currentAddress: Prisma.AddressCreateWithoutCurrentFamiliesInput;
+};
 
-export const updateFamily = async(data: updateFamilyDTO & createFamilyAssessmentDTO){
-    return prisma.family.update({
-        where: {id: data.id},
-        data: {
-            is_displaced: data.is_displaced,
-        }
-    })
-}
+type CreateAssessmentData = {
+  familyId: bigint;
+  assessedById: bigint;
+  monthlyFamilyIncome: Prisma.Decimal | number;
+  rentCost?: Prisma.Decimal | number | null;
+  housingType: HousingType;
+  isDisplaced: boolean;
+  isRegisteredInCamp: boolean;
+  hasElectricity: boolean;
+  hasInternet: boolean;
+  notes?: string;
+};
 
-export const findAll = async() => {
-    return prisma.family.findMany({
-        select: selectedFamily,
-        orderBy: {createdAt: "asc"}
-    })
-}
+export const createFamily = async (data: CreateFamilyData) =>
+  prisma.family.create({
+    data: {
+      passwordHash: data.passwordHash,
+      primaryPhone: data.primaryPhone,
+      ...(data.emergencyPhone && { emergencyPhone: data.emergencyPhone }),
+      branch: { connect: { id: data.branchId } },
+      createdBy: { connect: { id: data.createdById } },
+      originalAddress: { create: data.originalAddress },
+      currentAddress: { create: data.currentAddress },
+    },
+    include: familyInclude,
+  });
 
-}
+export const findFamilyById = async (id: bigint) =>
+  prisma.family.findUnique({ where: { id }, include: familyInclude });
 
-export const verifiedFamily = async(familyId: string, userId: string) => {
-    return prisma.family.update({
-        where: {familyId}
-        data: {verified_by: userId, family_status: "verified", verifiedAt: new Date(now())}
-    })
-}
+export const findFamilyByPhone = async (primaryPhone: string) =>
+  prisma.family.findUnique({ where: { primaryPhone }, include: familyInclude });
+
+export const findManyFamilies = async () =>
+  prisma.family.findMany({
+    include: familyInclude,
+    orderBy: { createdAt: "desc" },
+  });
+
+export const updateFamily = async (
+  id: bigint,
+  data: Prisma.FamilyUncheckedUpdateInput,
+) =>
+  prisma.family.update({
+    where: { id },
+    data,
+    include: familyInclude,
+  });
+
+export const verifyFamily = async (id: bigint, verifiedById: bigint) =>
+  prisma.family.update({
+    where: { id },
+    data: {
+      status: FamilyStatus.VERIFIED,
+      verifiedById,
+      verifiedAt: new Date(),
+    },
+    include: familyInclude,
+  });
+
+export const rejectFamily = async (id: bigint, verifiedById: bigint) =>
+  prisma.family.update({
+    where: { id },
+    data: {
+      status: FamilyStatus.REJECTED,
+      verifiedById,
+      verifiedAt: new Date(),
+    },
+    include: familyInclude,
+  });
+
+export const createAssessment = async (data: CreateAssessmentData) =>
+  prisma.familyAssessment.create({
+    data: {
+      monthlyFamilyIncome: data.monthlyFamilyIncome,
+      ...(data.rentCost !== undefined && { rentCost: data.rentCost }),
+      housingType: data.housingType,
+      isDisplaced: data.isDisplaced,
+      isRegisteredInCamp: data.isRegisteredInCamp,
+      hasElectricity: data.hasElectricity,
+      hasInternet: data.hasInternet,
+      ...(data.notes !== undefined && { notes: data.notes }),
+      family: { connect: { id: data.familyId } },
+      assessedBy: { connect: { id: data.assessedById } },
+    },
+  });
+
+export const findAssessmentByFamilyId = async (familyId: bigint) =>
+  prisma.familyAssessment.findUnique({ where: { familyId } });
+
+export const updateAssessment = async (
+  id: bigint,
+  data: Prisma.FamilyAssessmentUncheckedUpdateInput,
+) =>
+  prisma.familyAssessment.update({
+    where: { id },
+    data,
+  });

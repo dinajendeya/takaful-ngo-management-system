@@ -1,5 +1,14 @@
 import { prisma } from "../../../lib/prisma.js";
-import type { CreateUserDto } from "../schemas/auth.schema.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
+
+type CreateUserData = {
+  fullName: string;
+  email: string;
+  passwordHash: string;
+  role: Prisma.UserCreateInput["role"];
+  branchId?: bigint | undefined;
+  phone?: string | undefined;
+};
 
 const userSelect = {
   id: true,
@@ -15,7 +24,7 @@ const userSelect = {
   branch: { select: { id: true, name: true, governorate: true, address: true, phone: true } },
 } as const;
 
-export const create = async (data: CreateUserDto & {passwordHash: string}) =>
+export const create = async (data: CreateUserData) =>
   prisma.user.create({
     data: {
       fullName: data.fullName,
