@@ -48,7 +48,11 @@ const familyMemberBaseSchema = z.object({
 
 export const createFamilyMemberSchema = familyMemberValidation(familyMemberBaseSchema);
   
-export const updateFamilyMemberSchema = familyMemberValidation(familyMemberBaseSchema.partial());
+export const updateFamilyMemberSchema = familyMemberValidation(
+  familyMemberBaseSchema.partial().extend({
+    id: idSchema.optional(),
+  }),
+);
 
 
 export type CreateFamilyMemberDto = z.infer<typeof createFamilyMemberSchema>;

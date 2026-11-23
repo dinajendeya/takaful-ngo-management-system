@@ -2,8 +2,8 @@ import * as authRepository from "../repositories/auth.repository.js";
 import { hashRefreshToken, signAccessToken, signRefreshToken, verifyRefreshToken } from "../../../common/utils/jwt.js";
 import { hashPassword, verifyPassword } from "../../../common/utils/password.js";
 import { PrincipalType, type AuthUser } from "../../../common/types/auth-user.js";
+import { parseId } from "../../../common/utils/parseId.js";
 import type { LoginDto, RefreshDto, CreateUserDto, ChangePasswordDto } from "../schemas/auth.schema.js";
-import { hashSync } from "bcrypt";
 
 const toAuthUser = (user: { id: bigint; email: string; role: NonNullable<AuthUser["role"]>; branchId: bigint | null }): AuthUser => ({
   id: user.id.toString(),
@@ -12,33 +12,6 @@ const toAuthUser = (user: { id: bigint; email: string; role: NonNullable<AuthUse
   type: PrincipalType.USER,
   branchId: user.branchId?.toString() ?? null,
 });
-
-const parseId = (id: string) => {
-  if (!/^\d+$/.test(id)) throw new Error("Invalid user ID");
-  return BigInt(id);
-};
-
-/*
-export const refreshing = async (token: RefreshDto) => {
-  try { 
-    let authUser =  verifyRefreshToken(token.refreshToken)
-    return rotated = await authRepository.rotateRefreshToken(parseId(authUser.id), hashRefreshToken(token.refreshToken), hashRefreshToken(signRefreshToken(authUser)));
-  } catch {throw new Error("invalid token")};
-  }
-
-  export const refreshing2 = async (id: bigint) => {
-    const existingUser = await authRepository.findById(id);
-    if(!existingUser) throw new Error("no existing User");
-
-    const authUser = toAuthUser(existingUser);
-    const newRefreshtoken = signRefreshToken(authUser);
-    const hashedRefToken = hashRefreshToken(newRefreshtoken);
-
-    return rotated = await authRepository.saveRefreshToken(id, hashedRefToken);
-    
-  }
-  
-*/
 
 export const login = async (data: LoginDto) => {
   const user = await authRepository.findByEmail(data.email);
