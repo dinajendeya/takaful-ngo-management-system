@@ -1,7 +1,7 @@
 import { z } from "zod";
-
+import { CategoryType } from "../../../generated/prisma/enums.js"
 export const createCategorySchema = z.object({
-  name: z.string().min(1).max(100),
+  name: z.enum(CategoryType),
   description: z.string().max(5000).optional(),
 });
 
