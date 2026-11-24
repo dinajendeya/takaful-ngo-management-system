@@ -1,8 +1,13 @@
 import { Relationship } from "../../../generated/prisma/enums.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../../lib/prisma.js";
+import { parseId } from "../../../common/utils/parseId.js";
+import type { FamilyMemberChanges } from "../types/family-member.types.js";
 
-type CreateFamilyMemberData = Omit<Prisma.FamilyMemberCreateInput, "family" | "createdBy">
+type CreateFamilyMemberData = Omit<
+  Prisma.FamilyMemberCreateInput,
+  "family" | "createdBy"
+>;
 export const createFamilyMember = async (
   familyId: bigint,
   createdById: bigint,
@@ -17,15 +22,6 @@ export const createFamilyMember = async (
     },
   });
 
-export type FamilyMemberChanges = {
-  create: CreateFamilyMemberData[];
-  update: Array<{
-    id: bigint;
-    data: Prisma.FamilyMemberUncheckedUpdateInput;
-  }>;
-  delete: bigint[];
-};
-
 export const applyFamilyMemberChanges = async (
   familyId: bigint,
   createdById: bigint,
@@ -33,21 +29,26 @@ export const applyFamilyMemberChanges = async (
   tx: Prisma.TransactionClient,
 ) => {
   for (const member of changes.update) {
+    const { id, ...data } = member;
+    const parsedId = parseId(id);
     await tx.familyMember.update({
-      where: { id: member.id, familyId },
-      data: member.data,
+      where: { id: parsedId, familyId },
+      data: {
+        ...data,
+        ...(data.birthDate !== undefined && {
+          birthDate: new Date(String(data.birthDate)),
+        }),
+      },
     });
   }
 
-  for (const memberId of changes.delete) {
+  for (const rawMemberId of changes.delete) {
+    const memberId = parseId(rawMemberId);
     const member = await tx.familyMember.findFirst({
       where: { id: memberId, familyId },
       select: { id: true, relationship: true },
     });
     if (!member) throw new Error("Family member not found in this family");
-    if (member.relationship === Relationship.HEAD) {
-      throw new Error("The family head cannot be deleted");
-    }
     await tx.familyMember.delete({ where: { id: member.id } });
   }
 
@@ -55,8 +56,9 @@ export const applyFamilyMemberChanges = async (
     await tx.familyMember.create({
       data: {
         ...member,
-        family: { connect: { id: familyId } },
-        createdBy: { connect: { id: createdById } },
+        birthDate: new Date(String(member.birthDate)),
+        familyId,
+        createdById,
       },
     });
   }

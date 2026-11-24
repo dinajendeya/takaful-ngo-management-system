@@ -1,15 +1,13 @@
 import * as authRepository from "../../auth/repositories/auth.repository.js";
 import * as branchRepository from "../../branches/repositories/branch.repository.js";
-import * as familyMemberRepository from "../repositories/family-member.repository.js";
 import * as familyRepository from "../repositories/family.repository.js";
 import * as familyRequestRepository from "../repositories/family-request.repository.js";
-import { hashPassword } from "../../../common/utils/password.js";
+import * as familyMemberService from "./family-member.service.js";
 import { parseId } from "../../../common/utils/parseId.js";
 import { z } from "zod";
 import {
   FamilyRequestStatus,
   FamilyRequestType,
-  Relationship,
   UserRole,
 } from "../../../generated/prisma/enums.js";
 import type {
@@ -24,83 +22,20 @@ import {
   rejectFamilyRequestSchema,
   cancelFamilyRequestSchema,
 } from "../schemas/family-request.schema.js";
-import type { CreateFamilyMemberDto } from "../schemas/family-member.schema.js";
 import { createFamilyMemberSchema } from "../schemas/family-member.schema.js";
 import { createFamilySchema, createAssessmentSchema } from "../schemas/family.schema.js";
-
-type SnapshotMember = Record<string, unknown> & { id?: string | bigint };
-type AddressSnapshot = {
-  id?: string | bigint;
-  governorate: CreatingFamilyRequestDto["requestedFamily"]["originalAddress"]["governorate"];
-  city: string;
-  neighborhood?: string | null;
-  street?: string | null;
-  nearbyLandmark?: string | null;
-  additionalDetails?: string | null;
-};
-
-type AssessmentSnapshot = {
-  monthlyFamilyIncome: number | string;
-  rentCost?: number | string | null;
-  housingType: CreatingFamilyRequestDto["assessedFamily"]["housingType"];
-  isDisplaced: boolean;
-  isRegisteredInCamp: boolean;
-  hasElectricity: boolean;
-  hasInternet: boolean;
-  notes?: string | null;
-};
-
-type RequestChanges = {
-  family?: UpdatingFamilyRequestDto["family"] & { passwordHash?: string };
-  assessment?: UpdatingFamilyRequestDto["assessment"];
-  membersToCreate: CreateFamilyMemberDto[];
-  membersToUpdate: UpdatingFamilyRequestDto["membersToUpdate"];
-  membersToDelete: string[];
-};
-
-type FamilyRequestSnapshot = {
-  family: Record<string, unknown> & {
-    branchId?: string | bigint;
-    passwordHash?: string;
-    primaryPhone?: string;
-    emergencyPhone?: string | null;
-  };
-  address: {
-    original: AddressSnapshot;
-    current: AddressSnapshot;
-  };
-  assessment: AssessmentSnapshot | null;
-  members: SnapshotMember[];
-  changes?: RequestChanges;
-};
-
-type FamilyUpdateRequestChanges = NonNullable<RequestChanges["family"]>;
-
-const serializeSnapshot = (value: unknown) =>
-  JSON.parse(JSON.stringify(value, (_, item) =>
-    typeof item === "bigint" ? item.toString() : item,
-  ));
-
-const snapshotFamily = (
-  family: NonNullable<
-    Awaited<ReturnType<typeof familyRepository.findFamilyWithEverything>>
-  >,
-) => {
-  const {
-    passwordHash: _passwordHash,
-    originalAddress,
-    currentAddress,
-    assessment,
-    members,
-    ...familyData
-  } = family;
-  return {
-    family: familyData,
-    address: { original: originalAddress, current: currentAddress },
-    assessment,
-    members,
-  };
-};
+import type {
+  FamilyRequestChanges,
+  FamilyRequestSnapshot,
+} from "../types/family-request.types.js";
+import {
+  buildUpdateFamilyChanges,
+  createBeforeSnapshot,
+  createRegistrationSnapshot,
+  createUpdateSnapshot,
+  serializeSnapshot,
+  toFamilyRequestSnapshot,
+} from "../mappers/family-request.mapper.js";
 
 const ensureReviewer = async (reviewerId: string) => {
   const reviewer = await authRepository.findById(parseId(reviewerId));
@@ -150,22 +85,16 @@ const createMembersForAggregate = (
     isBasedInGaza: member.isBasedInGaza,
   }));
 
-const validateNationalIds = (nationalIds: string[]) => {
-  if (new Set(nationalIds).size !== nationalIds.length) {
-    throw new Error("National IDs must be unique");
-  }
-};
-
 export const createRegistrationRequest = async (
   data: CreatingFamilyRequestDto,
   requestedById: string,
 ) => {
   const payload = creatingFamilyRequestSchema.parse(data);
-  validateNationalIds(payload.members.map((member) => member.nationalId));
+  familyMemberService.validateNationalIds(
+    payload.members.map((member) => member.nationalId),
+  );
   for (const member of payload.members) {
-    if (await familyMemberRepository.findFamilyMemberByNationalId(member.nationalId)) {
-      throw new Error("National ID already exists");
-    }
+    await familyMemberService.ensureNationalIdAvailable(member.nationalId);
   }
   const branch = await branchRepository.findById(
     parseId(payload.requestedFamily.branchId),
@@ -176,21 +105,17 @@ export const createRegistrationRequest = async (
     payload.requestedFamily.primaryPhone,
   );
   if (existingFamily) throw new Error("Family with this primary phone already exists");
+  if (payload.requestedFamily.emergencyPhone) {
+    const existingEmergency =
+      await familyRepository.findFamilyByEmergencyPhone(
+        payload.requestedFamily.emergencyPhone,
+      );
+    if (existingEmergency) {
+      throw new Error("Family with this emergency phone already exists");
+    }
+  }
 
-  const snapshot = {
-    family: {
-      branchId: payload.requestedFamily.branchId,
-      passwordHash: await hashPassword(payload.requestedFamily.password),
-      primaryPhone: payload.requestedFamily.primaryPhone,
-      emergencyPhone: payload.requestedFamily.emergencyPhone,
-    },
-    address: {
-      original: payload.requestedFamily.originalAddress,
-      current: payload.requestedFamily.currentAddress,
-    },
-    assessment: payload.assessedFamily,
-    members: payload.members,
-  };
+  const snapshot = await createRegistrationSnapshot(payload);
 
   return familyRequestRepository.createFamilyRequest({
     type: FamilyRequestType.REGISTRATION,
@@ -223,112 +148,34 @@ export const createUpdateRequest = async (
     throw new Error("A pending update request already exists for this family");
   }
 
-  const before = snapshotFamily(family);
-  const updateIds = payload.membersToUpdate.map((member) => parseId(member.id));
-  const deleteIds = payload.membersToDelete.map(parseId);
-  const memberIds = new Set(family.members.map((member) => member.id.toString()));
-
-  if (
-    [...updateIds, ...deleteIds].some((memberId) => !memberIds.has(memberId.toString()))
-  ) {
-    throw new Error("Requested member change does not belong to this family");
-  }
-  if (new Set(updateIds.map(String)).size !== updateIds.length ||
-    new Set(deleteIds.map(String)).size !== deleteIds.length ||
-    updateIds.some((memberId) => deleteIds.includes(memberId))) {
-    throw new Error("A family member can only be changed once per request");
-  }
-
-  const deleting = new Set(deleteIds.map(String));
-  const updates = new Map(
-    payload.membersToUpdate.map((member) => [member.id, member]),
-  );
-  const resultingRelationships = family.members
-    .filter((member) => !deleting.has(member.id.toString()))
-    .map((member) =>
-      updates.get(member.id.toString())?.relationship ?? member.relationship,
-    )
-    .concat(payload.membersToCreate.map((member) => member.relationship));
-  if (resultingRelationships.filter((value) => value === Relationship.HEAD).length !== 1) {
-    throw new Error("A family must have exactly one head after the requested changes");
-  }
-  const memberUpdates = new Map(
-    payload.membersToUpdate.map((member) => [member.id, member]),
-  );
-  const resultingNationalIds = family.members
-    .filter((member) => !deleting.has(member.id.toString()))
-    .map((member) =>
-      memberUpdates.get(member.id.toString())?.nationalId ?? member.nationalId,
-    )
-    .concat(payload.membersToCreate.map((member) => member.nationalId));
-  validateNationalIds(resultingNationalIds);
-
-  for (const update of payload.membersToUpdate) {
-    if (update.nationalId === undefined) continue;
-    const existing = await familyMemberRepository.findFamilyMemberByNationalId(
-      update.nationalId,
-    );
-    if (
-      existing &&
-      existing.id.toString() !== update.id &&
-      !(existing.familyId === id && deleting.has(existing.id.toString()))
-    ) {
-      throw new Error("National ID already exists");
+  if (payload.family?.primaryPhone) {
+    const existing =
+      await familyRepository.findFamilyByPhone(payload.family.primaryPhone);
+    if (existing && existing.id !== id) {
+      throw new Error("Family with this primary phone already exists");
     }
   }
-  for (const member of payload.membersToCreate) {
-    const existing = await familyMemberRepository.findFamilyMemberByNationalId(
-      member.nationalId,
-    );
-    if (
-      existing &&
-      !(existing.familyId === id && deleting.has(existing.id.toString()))
-    ) {
-      throw new Error("National ID already exists");
+  if (payload.family?.emergencyPhone) {
+    const existing =
+      await familyRepository.findFamilyByEmergencyPhone(
+        payload.family.emergencyPhone,
+      );
+    if (existing && existing.id !== id) {
+      throw new Error("Family with this emergency phone already exists");
     }
   }
 
-  const { password, ...familyFields } = payload.family ?? {};
-  const familyChanges: FamilyUpdateRequestChanges | undefined = payload.family
-    ? {
-        ...familyFields,
-        ...(password !== undefined && {
-          passwordHash: await hashPassword(password),
-        }),
-      }
-    : undefined;
-  const { passwordHash, ...familyAfterChanges } = familyChanges ?? {};
-  const after = {
-    ...before,
-    family: {
-      ...before.family,
-      ...familyAfterChanges,
-      ...(passwordHash !== undefined && { passwordHash }),
-    },
-    address: {
-      original: { ...before.address.original, ...payload.family?.originalAddress },
-      current: { ...before.address.current, ...payload.family?.currentAddress },
-    },
-    assessment: before.assessment
-      ? { ...before.assessment, ...payload.assessment }
-      : payload.assessment ?? null,
-    members: [
-      ...before.members
-        .filter((member) => !deleting.has(String(member.id)))
-        .map((member) => ({
-          ...member,
-          ...updates.get(String(member.id)),
-        })),
-        ...payload.membersToCreate,
-    ],
-    changes: {
-      ...(familyChanges && { family: familyChanges }),
-        ...(payload.assessment && { assessment: payload.assessment }),
-      membersToCreate: payload.membersToCreate,
-        membersToUpdate: payload.membersToUpdate,
-        membersToDelete: payload.membersToDelete,
-    },
-  };
+  const before = createBeforeSnapshot(family);
+  await familyMemberService.validateMemberChanges({
+    familyId: id,
+    existingMembers: family.members,
+    membersToCreate: payload.membersToCreate,
+    membersToUpdate: payload.membersToUpdate,
+    membersToDelete: payload.membersToDelete,
+  });
+
+  const familyChanges = await buildUpdateFamilyChanges(payload.family);
+  const after = createUpdateSnapshot(before, payload, familyChanges);
 
   return familyRequestRepository.createFamilyRequest({
     type: FamilyRequestType.UPDATE,
@@ -343,65 +190,68 @@ export const createUpdateRequest = async (
   });
 };
 
-const toSnapshot = (data: unknown) =>
-  data as FamilyRequestSnapshot;
+type FamilyRequestRecord = NonNullable<
+  Awaited<ReturnType<typeof familyRequestRepository.findFamilyRequestById>>
+>;
 
-export const approveRequest = async (
-  requestId: string,
-  reviewerId: string,
+const approveRegistrationRequest = async (
+  request: FamilyRequestRecord,
+  reviewerId: bigint,
 ) => {
-  const reviewer = await ensureReviewer(reviewerId);
-  const id = parseId(requestId);
-  const request = await familyRequestRepository.findFamilyRequestById(id);
-  if (!request) throw new Error("Family request not found");
-  if (request.status !== FamilyRequestStatus.PENDING) {
-    throw new Error("Only pending requests can be approved");
+  const id = request.id;
+  const snapshot = toFamilyRequestSnapshot(request.afterData);
+  const familyData = snapshot.family;
+  const familyPayload = createFamilySchema.omit({ password: true }).parse({
+    ...familyData,
+    originalAddress: snapshot.address.original,
+    currentAddress: snapshot.address.current,
+  });
+  const assessmentData = createAssessmentSchema.parse(snapshot.assessment);
+  const members = z.array(createFamilyMemberSchema).parse(snapshot.members);
+  if (typeof familyData.passwordHash !== "string") {
+    throw new Error("Registration request is missing its password hash");
   }
 
-  const snapshot = toSnapshot(request.afterData);
-  if (request.type === FamilyRequestType.REGISTRATION) {
-    const familyData = snapshot.family;
-    const familyPayload = createFamilySchema.omit({ password: true }).parse({
-      ...familyData,
-      originalAddress: snapshot.address.original,
-      currentAddress: snapshot.address.current,
-    });
-    const assessmentData = createAssessmentSchema.parse(snapshot.assessment);
-    const members = z.array(createFamilyMemberSchema).parse(snapshot.members);
-    if (typeof familyData.passwordHash !== "string") {
-      throw new Error("Registration request is missing its password hash");
-    }
+  const branchId = parseId(familyPayload.branchId);
+  if (!(await branchRepository.findById(branchId))) {
+    throw new Error("Registration request branch no longer exists");
+  }
 
-    const branchId = parseId(familyPayload.branchId);
-    if (!(await branchRepository.findById(branchId))) {
-      throw new Error("Registration request branch no longer exists");
-    }
-
-    return familyRequestRepository.approveFamilyRequest(id, reviewer.id, {
-      type: FamilyRequestType.REGISTRATION,
+  return familyRequestRepository.approveFamilyRequest(id, reviewerId, {
+    type: FamilyRequestType.REGISTRATION,
+    family: {
       family: {
-        family: {
-          branchId,
-          createdById: request.requestedById,
-          passwordHash: familyData.passwordHash,
-          primaryPhone: familyPayload.primaryPhone,
-          ...(familyPayload.emergencyPhone !== undefined && {
-            emergencyPhone: familyPayload.emergencyPhone,
-          }),
-          originalAddress: familyPayload.originalAddress,
-          currentAddress: familyPayload.currentAddress,
-        },
-        assessment: {
-          assessedById: reviewer.id,
-          ...assessmentData,
-        },
-        members: createMembersForAggregate(members, request.requestedById),
+        branchId,
+        createdById: request.requestedById,
+        passwordHash: familyData.passwordHash,
+        primaryPhone: familyPayload.primaryPhone,
+        ...(familyPayload.emergencyPhone !== undefined && {
+          emergencyPhone: familyPayload.emergencyPhone,
+        }),
+        originalAddress: familyPayload.originalAddress,
+        currentAddress: familyPayload.currentAddress,
       },
-    });
-  }
+      assessment: {
+        assessedById: reviewerId,
+        ...assessmentData,
+      },
+      members: createMembersForAggregate(members, request.requestedById),
+    },
+  });
+};
 
+const approveUpdateRequest = async (
+  request: FamilyRequestRecord,
+  reviewerId: bigint,
+) => {
+  const id = request.id;
+  const snapshot = toFamilyRequestSnapshot(request.afterData);
   if (request.familyId === null) {
     throw new Error("Update request is missing its family");
+  }
+  const updateFamilyId = request.familyId;
+  if (!(await familyRepository.findFamilyById(updateFamilyId))) {
+    throw new Error("Family no longer exists");
   }
   const storedChanges = snapshot.changes;
   if (!storedChanges) throw new Error("Update request is missing its changes");
@@ -415,7 +265,7 @@ export const approveRequest = async (
     membersToUpdate: storedChanges.membersToUpdate,
     membersToDelete: storedChanges.membersToDelete,
   });
-  const changes: RequestChanges = {
+  const changes: FamilyRequestChanges = {
     ...validatedChanges,
     ...(validatedChanges.family || storedPasswordHash
       ? {
@@ -434,6 +284,22 @@ export const approveRequest = async (
     );
     if (!branch) throw new Error("Update request branch no longer exists");
   }
+  if (changes.family?.primaryPhone) {
+    const existing =
+      await familyRepository.findFamilyByPhone(changes.family.primaryPhone);
+    if (existing && existing.id !== updateFamilyId) {
+      throw new Error("Family with this primary phone already exists");
+    }
+  }
+  if (changes.family?.emergencyPhone) {
+    const existing =
+      await familyRepository.findFamilyByEmergencyPhone(
+        changes.family.emergencyPhone,
+      );
+    if (existing && existing.id !== updateFamilyId) {
+      throw new Error("Family with this emergency phone already exists");
+    }
+  }
   const { originalAddress, currentAddress, passwordHash, ...fields } =
     changes.family ?? {};
   const familyUpdate = {
@@ -449,9 +315,9 @@ export const approveRequest = async (
     ...(passwordHash !== undefined && { passwordHash }),
   };
 
-  return familyRequestRepository.approveFamilyRequest(id, reviewer.id, {
+  return familyRequestRepository.approveFamilyRequest(id, reviewerId, {
     type: FamilyRequestType.UPDATE,
-    familyId: request.familyId,
+    familyId: updateFamilyId,
     family: {
       ...(Object.keys(familyUpdate).length > 0 && { family: familyUpdate }),
       ...(originalAddress || currentAddress
@@ -465,22 +331,30 @@ export const approveRequest = async (
       ...(changes.assessment && { assessment: changes.assessment }),
     },
     members: {
-      create: changes.membersToCreate.map((member) => ({
-        ...member,
-        birthDate: new Date(String(member.birthDate)),
-      })),
-      update: changes.membersToUpdate.map(({ id: memberId, ...data }) => ({
-        id: parseId(memberId),
-        data: {
-          ...data,
-          ...(data.birthDate !== undefined && {
-            birthDate: new Date(String(data.birthDate)),
-          }),
-        },
-      })),
-      delete: changes.membersToDelete.map(parseId),
+      create: changes.membersToCreate,
+      update: changes.membersToUpdate,
+      delete: changes.membersToDelete,
     },
   });
+};
+
+export const approveRequest = async (
+  requestId: string,
+  reviewerId: string,
+) => {
+  const reviewer = await ensureReviewer(reviewerId);
+  const request = await familyRequestRepository.findFamilyRequestById(
+    parseId(requestId),
+  );
+  if (!request) throw new Error("Family request not found");
+  if (request.status !== FamilyRequestStatus.PENDING) {
+    throw new Error("Only pending requests can be approved");
+  }
+
+  if (request.type === FamilyRequestType.REGISTRATION) {
+    return approveRegistrationRequest(request, reviewer.id);
+  }
+  return approveUpdateRequest(request, reviewer.id);
 };
 
 export const rejectRequest = async (

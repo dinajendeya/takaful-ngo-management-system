@@ -313,34 +313,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 
 ---
 
-### 3.5 Public ID Prefixes
-
-| Entity | Prefix | Example |
-|---|---|---|
-| Admin | `ADM` | ADM-0001 |
-| Branch Manager | `MGR` | MGR-0005 |
-| Field Researcher | `RES` | RES-0015 |
-| Inventory Manager | `INV` | INV-0002 |
-| Finance Manager | `FIN` | FIN-00001 |
-| Branch | `BRN` | BRN-0001 |
-| Family | `FAM` | FAM-000001 |
-| Family Member | `MBR` | MBR-000001 |
-| Family Request | `FREQ` | FREQ-000001 |
-| Inventory | `WHS` | WHS-0001 |
-| Item | `ITM` | ITM-000001 |
-| Parcel Template | `PRC` | PRC-0001 |
-| Project | `PRJ` | PRJ-00001 |
-| Distribution | `DST` | DST-000001 |
-| Donor | `DNR` | DNR-00001 |
-| Donation Request | `DREQ` | DREQ-00001 |
-| Donation | `DON` | DON-00001 |
-| Financial Account | `ACC` | ACC-0001 |
-| Financial Transaction | `FINTRX` | FINTRX-00001 |
-| Inventory Transaction | `INVTRX` | INVTRX-00001 |
-| Expense Category | `EXP` | EXP-0001 |
-
----
-
 ### 3.6 Table Definitions
 
 #### Module 1 — Identity & Access
@@ -350,7 +322,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | name | VARCHAR(150) | NOT NULL, UNIQUE | |
 | governorate | VARCHAR(100) | NOT NULL | |
 | address | TEXT | | |
@@ -362,7 +333,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | branch_id | BIGINT | | branches(id) |
 | full_name | VARCHAR(150) | NOT NULL | |
 | email | VARCHAR(255) | NOT NULL, UNIQUE | |
@@ -408,7 +378,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | primary_phone | VARCHAR(30) | NOT NULL | |
 | emergency_phone | VARCHAR(30) | | |
 | original_address_id | BIGINT | NOT NULL | addresses(id) |
@@ -424,7 +393,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | family_id | BIGINT | NOT NULL | families(id) ON DELETE CASCADE |
 | national_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | full_name | VARCHAR(200) | NOT NULL | |
@@ -469,7 +437,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | UUID | NOT NULL, UNIQUE, DEFAULT uuid_generate_v4() | |
 | family_id | BIGINT | NOT NULL | families(id) |
 | requested_by | BIGINT | NOT NULL | family_members(id) |
 | before_data | JSONB | NOT NULL | |
@@ -500,7 +467,6 @@ CHECK (
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | name | VARCHAR(200) | NOT NULL | |
 | description | TEXT | | |
 | start_date | DATE | NOT NULL | |

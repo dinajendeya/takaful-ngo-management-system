@@ -6,6 +6,7 @@ import {
 } from "../../../generated/prisma/enums.js";
 import * as familyMemberRepository from "./family-member.repository.js";
 import * as familyRepository from "./family.repository.js";
+import type { FamilyRequestApprovalData } from "../types/family-request.types.js";
 
 type CreateFamilyRequestData = {
   type: FamilyRequestType;
@@ -26,9 +27,7 @@ export const createFamilyRequest = async (data: CreateFamilyRequestData) =>
       title: data.title,
       beforeData: data.beforeData,
       afterData: data.afterData,
-      ...(data.justification !== undefined && {
-        justification: data.justification,
-      }),
+      ...(data.justification !== undefined && { justification: data.justification }),
     },
   });
 
@@ -108,22 +107,10 @@ const approvePendingFamilyRequest = async (
   });
 };
 
-type ApprovalData =
-  | {
-      type: typeof FamilyRequestType.REGISTRATION;
-      family: familyRepository.CreateFamilyAggregateData;
-    }
-  | {
-      type: typeof FamilyRequestType.UPDATE;
-      familyId: bigint;
-      family: familyRepository.FamilyUpdateAggregateData;
-      members: familyMemberRepository.FamilyMemberChanges;
-    };
-
 export const approveFamilyRequest = async (
   id: bigint,
   reviewerId: bigint,
-  approval: ApprovalData,
+  approval: FamilyRequestApprovalData,
 ) =>
   prisma.$transaction(async (tx) => {
     const request = await findFamilyRequestById(id, tx);
@@ -137,10 +124,7 @@ export const approveFamilyRequest = async (
 
     let familyId = request.familyId;
     if (approval.type === FamilyRequestType.REGISTRATION) {
-      familyId = (await familyRepository.createFamilyAggregate(
-        approval.family,
-        tx,
-      )).id;
+      familyId = (await familyRepository.createFamilyAggregate(approval.family, tx)).id;
     } else {
       if (familyId === null || familyId !== approval.familyId) {
         throw new Error("Update request family does not match its snapshot");

@@ -1,6 +1,13 @@
-import { FamilyStatus, HousingType } from "../../../generated/prisma/enums.js";
+import { FamilyStatus } from "../../../generated/prisma/enums.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../../lib/prisma.js";
+import type {
+  CreateAssessmentData,
+  CreateFamilyAggregateData,
+  CreateFamilyData,
+  FamilyFilters,
+  FamilyUpdateAggregateData,
+} from "../types/family.types.js";
 
 const familyInclude = {
   branch: true,
@@ -10,52 +17,9 @@ const familyInclude = {
   assessment: true,
 } as const;
 
-export type FamilyUpdateData = Prisma.FamilyUncheckedUpdateInput;
-export type AssessmentUpdateData = Prisma.FamilyAssessmentUncheckedUpdateInput;
-export type AddressUpdateData = Prisma.AddressUncheckedUpdateInput;
-
-export type CreateFamilyData = {
-  branchId: bigint;
-  createdById: bigint;
-  passwordHash: string;
-  primaryPhone: string;
-  emergencyPhone?: string | undefined;
-  originalAddress: Prisma.AddressCreateWithoutOriginalFamiliesInput;
-  currentAddress: Prisma.AddressCreateWithoutCurrentFamiliesInput;
-};
-
-export type CreateAssessmentData = {
-  assessedById: bigint;
-  monthlyFamilyIncome: Prisma.Decimal | number;
-  rentCost?: Prisma.Decimal | number | null | undefined;
-  housingType: HousingType;
-  isDisplaced: boolean;
-  isRegisteredInCamp: boolean;
-  hasElectricity: boolean;
-  hasInternet: boolean;
-  notes?: string | undefined;
-};
-
-export type CreateFamilyAggregateData = {
-  family: CreateFamilyData;
-  assessment: CreateAssessmentData;
-  members: Omit<Prisma.FamilyMemberCreateManyInput, "familyId">[];
-};
-
-export type FamilyUpdateAggregateData = {
-  family?: FamilyUpdateData;
-  assessment?: AssessmentUpdateData;
-  addresses?: {
-    originalAddress?: AddressUpdateData;
-    currentAddress?: AddressUpdateData;
-  };
-};
-
-type FamilyFilters = {
-  status?: FamilyStatus;
-  branchId?: bigint;
-  primaryPhone?: string;
-};
+type FamilyUpdateData = Prisma.FamilyUncheckedUpdateInput;
+type AssessmentUpdateData = Prisma.FamilyAssessmentUncheckedUpdateInput;
+type AddressUpdateData = Prisma.AddressUncheckedUpdateInput;
 
 export const transaction = <T>(
   callback: (tx: Prisma.TransactionClient) => Promise<T>,
@@ -146,6 +110,12 @@ export const findFamilyWithEverything = async (
 
 export const findFamilyByPhone = async (primaryPhone: string) =>
   prisma.family.findUnique({ where: { primaryPhone }, include: familyInclude });
+
+export const findFamilyByEmergencyPhone = async (emergencyPhone: string) =>
+  prisma.family.findFirst({
+    where: { emergencyPhone },
+    include: familyInclude,
+  });
 
 export const findManyFamilies = async (
   data: FamilyFilters = {},

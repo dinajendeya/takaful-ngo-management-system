@@ -46,6 +46,8 @@ const familyMemberBaseSchema = z.object({
   isBasedInGaza: z.boolean().default(true),
 });
 
+export const createFamilyMembersSchema = z.array(familyMemberBaseSchema);
+
 export const createFamilyMemberSchema = familyMemberValidation(familyMemberBaseSchema);
   
 export const updateFamilyMemberSchema = familyMemberValidation(
@@ -57,3 +59,4 @@ export const updateFamilyMemberSchema = familyMemberValidation(
 
 export type CreateFamilyMemberDto = z.infer<typeof createFamilyMemberSchema>;
 export type UpdateFamilyMemberDto = z.infer<typeof updateFamilyMemberSchema>;
+export type CreateFamilyMembersDTO = z.infer<typeof createFamilyMembersSchema>;
