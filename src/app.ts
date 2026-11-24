@@ -5,6 +5,9 @@ import morgan from "morgan";
 
 import branchRoutes from "./modules/branches/branch.routes.js";
 import authRoutes from "./modules/auth/auth.routes.js";
+import familyRoutes from "./modules/family/routes/family.route.js";
+import familyRequestRoutes from "./modules/family/routes/family-request.route.js";
+import familyAuthRoutes from "./modules/family/routes/family-auth.route.js";
 
 const app = express();
 
@@ -14,7 +17,10 @@ app.use(helmet());
 app.use(morgan("dev"));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/family-auth", familyAuthRoutes);
 app.use("/api/branches", branchRoutes);
+app.use("/api/families", familyRoutes);
+app.use("/api/family-requests", familyRequestRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({

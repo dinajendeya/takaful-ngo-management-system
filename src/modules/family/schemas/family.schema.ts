@@ -33,6 +33,8 @@ export const createFamilySchema = z.object({
   currentAddress: addressSchema,
 });
 
+export const createEmployeeFamilySchema = createFamilySchema.omit({ password: true });
+
 export const updateFamilySchema = createFamilySchema.partial();
 
 export const createAssessmentSchema = assessmentSchema;
@@ -46,6 +48,7 @@ export const rejectFamilySchema = z.object({
 
 export type AddressDto = z.infer<typeof addressSchema>;
 export type CreateFamilyDto = z.infer<typeof createFamilySchema>;
+export type CreateEmployeeFamilyDto = z.infer<typeof createEmployeeFamilySchema>;
 export type UpdateFamilyDto = z.infer<typeof updateFamilySchema>;
 export type CreateAssessmentDto = z.infer<typeof createAssessmentSchema>;
 export type UpdateAssessmentDto = z.infer<typeof updateAssessmentSchema>;

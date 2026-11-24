@@ -1,8 +1,4 @@
-import { hashPassword } from "../../../common/utils/password.js";
-import type {
-  CreatingFamilyRequestDto,
-  UpdatingFamilyRequestDto,
-} from "../schemas/family-request.schema.js";
+import type { UpdatingFamilyRequestDto } from "../schemas/family-request.schema.js";
 import type {
   FamilyRequestChanges,
   FamilyRequestSnapshot,
@@ -14,32 +10,12 @@ export const serializeSnapshot = (value: unknown) =>
     typeof item === "bigint" ? item.toString() : item,
   ));
 
-export const createRegistrationSnapshot = async (
-  payload: CreatingFamilyRequestDto,
-): Promise<FamilyRequestSnapshot> => {
-  return {
-    family: {
-      branchId: payload.requestedFamily.branchId,
-      passwordHash: await hashPassword(payload.requestedFamily.password),
-      primaryPhone: payload.requestedFamily.primaryPhone,
-      emergencyPhone: payload.requestedFamily.emergencyPhone,
-    },
-    address: {
-      original: payload.requestedFamily.originalAddress,
-      current: payload.requestedFamily.currentAddress,
-    },
-    assessment: payload.assessedFamily,
-    members: payload.members,
-  };
-};
-
 export const createBeforeSnapshot = (
   family: NonNullable<
     Awaited<ReturnType<typeof familyRepository.findFamilyWithEverything>>
   >,
 ): FamilyRequestSnapshot => {
   const {
-    passwordHash: _passwordHash,
     originalAddress,
     currentAddress,
     assessment,
@@ -57,14 +33,7 @@ export const createBeforeSnapshot = (
 export const buildUpdateFamilyChanges = async (
   family: UpdatingFamilyRequestDto["family"],
 ): Promise<FamilyRequestChanges["family"]> => {
-  if (!family) return undefined;
-  const { password, ...familyFields } = family;
-  return {
-    ...familyFields,
-    ...(password !== undefined && {
-      passwordHash: await hashPassword(password),
-    }),
-  };
+  return family;
 };
 
 export const createUpdateSnapshot = (
@@ -76,13 +45,11 @@ export const createUpdateSnapshot = (
   const updates = new Map(
     payload.membersToUpdate.map((member) => [member.id, member]),
   );
-  const { passwordHash, ...familyAfterChanges } = familyChanges ?? {};
   return {
     ...before,
     family: {
       ...before.family,
-      ...familyAfterChanges,
-      ...(passwordHash !== undefined && { passwordHash }),
+      ...familyChanges,
     },
     address: {
       original: {

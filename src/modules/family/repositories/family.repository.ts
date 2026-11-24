@@ -1,4 +1,5 @@
 import { FamilyStatus } from "../../../generated/prisma/enums.js";
+import { randomUUID } from "node:crypto";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../../lib/prisma.js";
 import type {
@@ -26,19 +27,21 @@ export const transaction = <T>(
 ) => prisma.$transaction(callback);
 
 export const createFamily = async (data: CreateFamilyData) =>
-  prisma.family.create({
-    data: {
-      passwordHash: data.passwordHash,
-      primaryPhone: data.primaryPhone,
-      ...(data.emergencyPhone !== undefined && {
-        emergencyPhone: data.emergencyPhone,
-      }),
-      branch: { connect: { id: data.branchId } },
-      createdBy: { connect: { id: data.createdById } },
-      originalAddress: { create: data.originalAddress },
-      currentAddress: { create: data.currentAddress },
-    },
-    include: familyInclude,
+  prisma.$transaction(async (tx) => {
+    const family = await tx.family.create({
+      data: {
+        publicId: `FAM-TMP-${randomUUID().slice(0, 8)}`,
+        passwordHash: data.passwordHash,
+        mustChangePassword: true,
+        primaryPhone: data.primaryPhone,
+        ...(data.emergencyPhone !== undefined && { emergencyPhone: data.emergencyPhone }),
+        branch: { connect: { id: data.branchId } },
+        createdBy: { connect: { id: data.createdById } },
+        originalAddress: { create: data.originalAddress },
+        currentAddress: { create: data.currentAddress },
+      },
+    });
+    return tx.family.update({ where: { id: family.id }, data: { publicId: `FAM-${family.id.toString().padStart(6, "0")}` }, include: familyInclude, omit: { passwordHash: true, refreshToken: true } });
   });
 
 const createFamilyAggregateWithClient = async (
@@ -47,17 +50,17 @@ const createFamilyAggregateWithClient = async (
 ) => {
   const family = await tx.family.create({
     data: {
+      publicId: `FAM-TMP-${randomUUID().slice(0, 8)}`,
       passwordHash: data.family.passwordHash,
       primaryPhone: data.family.primaryPhone,
-      ...(data.family.emergencyPhone !== undefined && {
-        emergencyPhone: data.family.emergencyPhone,
-      }),
+      ...(data.family.emergencyPhone !== undefined && { emergencyPhone: data.family.emergencyPhone }),
       branch: { connect: { id: data.family.branchId } },
       createdBy: { connect: { id: data.family.createdById } },
       originalAddress: { create: data.family.originalAddress },
       currentAddress: { create: data.family.currentAddress },
     },
   });
+  await tx.family.update({ where: { id: family.id }, data: { publicId: `FAM-${family.id.toString().padStart(6, "0")}` } });
 
   await tx.familyAssessment.create({
     data: {
@@ -78,6 +81,7 @@ const createFamilyAggregateWithClient = async (
   return tx.family.findUniqueOrThrow({
     where: { id: family.id },
     include: familyInclude,
+    omit: { passwordHash: true, refreshToken: true },
   });
 };
 
@@ -92,47 +96,57 @@ export const createFamilyAggregate = async (
       );
 
 export const findFamilyById = async (id: bigint) =>
-  prisma.family.findUnique({ where: { id }, include: familyInclude });
+  prisma.family.findFirst({ where: { id, deletedAt: null }, include: familyInclude, omit: { passwordHash: true, refreshToken: true } });
 
 export const findFamilyForRequestApproval = async (
   id: bigint,
   tx: Prisma.TransactionClient | typeof prisma = prisma,
-) => tx.family.findUnique({ where: { id }, include: familyInclude });
+) => tx.family.findFirst({ where: { id, deletedAt: null }, include: familyInclude, omit: { passwordHash: true, refreshToken: true } });
 
 export const findFamilyWithEverything = async (
   familyId: bigint,
   tx: Prisma.TransactionClient | typeof prisma = prisma,
 ) =>
-  tx.family.findUnique({
-    where: { id: familyId },
+  tx.family.findFirst({
+    where: { id: familyId, deletedAt: null },
     include: familyInclude,
+    omit: { passwordHash: true, refreshToken: true },
   });
 
 export const findFamilyByPhone = async (primaryPhone: string) =>
-  prisma.family.findUnique({ where: { primaryPhone }, include: familyInclude });
+  prisma.family.findFirst({ where: { primaryPhone, deletedAt: null }, include: familyInclude, omit: { passwordHash: true, refreshToken: true } });
 
 export const findFamilyByEmergencyPhone = async (emergencyPhone: string) =>
   prisma.family.findFirst({
-    where: { emergencyPhone },
+    where: { emergencyPhone, deletedAt: null },
     include: familyInclude,
+    omit: { passwordHash: true, refreshToken: true },
   });
 
 export const findManyFamilies = async (
   data: FamilyFilters = {},
   page = 1,
   limit = 20,
-) =>
-  prisma.family.findMany({
-    where: {
-      ...(data.status && { status: data.status }),
-      ...(data.branchId && { branchId: data.branchId }),
-      ...(data.primaryPhone && { primaryPhone: { contains: data.primaryPhone } }),
-    },
-    skip: (page - 1) * limit,
-    take: limit,
-    include: familyInclude,
-    orderBy: { createdAt: "desc" },
-  });
+) => {
+  const where: Prisma.FamilyWhereInput = {
+    deletedAt: null,
+    ...(data.status && { status: data.status }),
+    ...(data.branchId && { branchId: data.branchId }),
+    ...(data.primaryPhone && { primaryPhone: { contains: data.primaryPhone } }),
+  };
+  const [items, total] = await prisma.$transaction([
+    prisma.family.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      include: familyInclude,
+      omit: { passwordHash: true, refreshToken: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.family.count({ where }),
+  ]);
+  return { items, total, page, limit, pages: Math.ceil(total / limit) };
+};
 
 export const updateFamily = async (
   id: bigint,
@@ -142,6 +156,7 @@ export const updateFamily = async (
     where: { id },
     data,
     include: familyInclude,
+    omit: { passwordHash: true, refreshToken: true },
   });
 
 export const updateFamilyPartial = async (
@@ -163,6 +178,7 @@ export const verifyFamily = async (id: bigint, verifiedById: bigint) =>
       verifiedAt: new Date(),
     },
     include: familyInclude,
+    omit: { passwordHash: true, refreshToken: true },
   });
 
 export const rejectFamily = async (id: bigint, verifiedById: bigint) =>
@@ -174,6 +190,7 @@ export const rejectFamily = async (id: bigint, verifiedById: bigint) =>
       verifiedAt: new Date(),
     },
     include: familyInclude,
+    omit: { passwordHash: true, refreshToken: true },
   });
 
 export const createAssessment = async (
@@ -196,6 +213,29 @@ export const createAssessment = async (
 
 export const findAssessmentByFamilyId = async (familyId: bigint) =>
   prisma.familyAssessment.findUnique({ where: { familyId } });
+
+export const findBranch = async (id: bigint) => prisma.branch.findUnique({ where: { id } });
+
+export const findFamilyByPublicId = async (publicId: string) =>
+  prisma.family.findFirst({ where: { publicId, deletedAt: null }, select: { id: true, publicId: true, passwordHash: true, mustChangePassword: true } });
+
+export const findFamilyByIdForAuth = async (id: bigint) =>
+  prisma.family.findFirst({ where: { id, deletedAt: null }, select: { id: true, passwordHash: true } });
+
+export const findFamilyPasswordStatus = async (id: bigint) =>
+  prisma.family.findFirst({ where: { id, deletedAt: null }, select: { mustChangePassword: true } });
+
+export const updateFamilyAuth = async (id: bigint, data: Prisma.FamilyUncheckedUpdateInput) =>
+  prisma.family.update({ where: { id }, data, select: { id: true } });
+
+export const findFamilyByRefreshToken = async (refreshToken: string) =>
+  prisma.family.findFirst({ where: { refreshToken, deletedAt: null }, select: { id: true, publicId: true, refreshToken: true, mustChangePassword: true } });
+
+export const rotateFamilyRefreshToken = async (id: bigint, current: string, next: string) =>
+  (await prisma.family.updateMany({ where: { id, refreshToken: current, deletedAt: null }, data: { refreshToken: next } })).count === 1;
+
+export const softDeleteFamily = async (id: bigint) =>
+  prisma.family.update({ where: { id }, data: { deletedAt: new Date() }, omit: { passwordHash: true, refreshToken: true } });
 
 export const updateAssessmentByFamilyId = async (
   familyId: bigint,

@@ -31,13 +31,13 @@ export const applyFamilyMemberChanges = async (
   for (const member of changes.update) {
     const { id, ...data } = member;
     const parsedId = parseId(id);
+    const existing = await tx.familyMember.findFirst({ where: { id: parsedId, familyId }, select: { id: true } });
+    if (!existing) throw new Error("Family member not found in this family");
     await tx.familyMember.update({
-      where: { id: parsedId, familyId },
+      where: { id: parsedId },
       data: {
         ...data,
-        ...(data.birthDate !== undefined && {
-          birthDate: new Date(String(data.birthDate)),
-        }),
+        ...(data.birthDate !== undefined && { birthDate: new Date(String(data.birthDate)) }),
       },
     });
   }
@@ -49,6 +49,7 @@ export const applyFamilyMemberChanges = async (
       select: { id: true, relationship: true },
     });
     if (!member) throw new Error("Family member not found in this family");
+    if (member.relationship === Relationship.HEAD) throw new Error("Family head cannot be deleted");
     await tx.familyMember.delete({ where: { id: member.id } });
   }
 
@@ -75,6 +76,15 @@ export const findFamilyMembersByFamilyId = async (familyId: bigint) =>
     where: { familyId },
     orderBy: { createdAt: "asc" },
   });
+
+export const findManyFamilyMembersByFamilyId = async (familyId: bigint, page = 1, limit = 20) => {
+  const where = { familyId };
+  const [items, total] = await prisma.$transaction([
+    prisma.familyMember.findMany({ where, orderBy: { createdAt: "asc" }, skip: (page - 1) * limit, take: limit }),
+    prisma.familyMember.count({ where }),
+  ]);
+  return { items, total, page, limit, pages: Math.ceil(total / limit) };
+};
 
 export const findFamilyHead = async (familyId: bigint) =>
   prisma.familyMember.findFirst({

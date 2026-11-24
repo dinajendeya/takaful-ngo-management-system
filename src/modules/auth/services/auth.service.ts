@@ -6,10 +6,9 @@ import { parseId } from "../../../common/utils/parseId.js";
 import type { LoginDto, RefreshDto, CreateUserDto, ChangePasswordDto } from "../schemas/auth.schema.js";
 
 const toAuthUser = (user: { id: bigint; email: string; role: NonNullable<AuthUser["role"]>; branchId: bigint | null }): AuthUser => ({
-  id: user.id.toString(),
-  email: user.email,
+  sub: user.id.toString(),
   role: user.role,
-  type: PrincipalType.USER,
+  principalType: PrincipalType.USER,
   branchId: user.branchId?.toString() ?? null,
 });
 
@@ -45,7 +44,7 @@ export const refresh = async (data: RefreshDto) => {
 
   const tokenHash = hashRefreshToken(data.refreshToken);
   const user = await authRepository.findByRefreshToken(tokenHash);
-  if (!user || !user.isActive || user.id.toString() !== tokenUser.id) throw new Error("Invalid refresh token");
+  if (!user || !user.isActive || user.id.toString() !== tokenUser.sub || tokenUser.principalType !== PrincipalType.USER) throw new Error("Invalid refresh token");
 
   const authUser = toAuthUser(user);
   const nextRefreshToken = signRefreshToken(authUser);
@@ -69,14 +68,14 @@ export const refreshing = async(data: RefreshDto) => {
 
   const hashedCurrentToken = hashRefreshToken(data.refreshToken)
   const existingUser = await authRepository.findByRefreshToken(hashedCurrentToken);
-  if(!existingUser || !existingUser.isActive || parseId(tokenUser.id) !== existingUser.id) throw new Error("invalid token");
+  if(!existingUser || !existingUser.isActive || parseId(tokenUser.sub) !== existingUser.id || tokenUser.principalType !== PrincipalType.USER) throw new Error("invalid token");
 
   const authUser = toAuthUser(existingUser);
   const newRefreshToken = signRefreshToken(authUser);
   const newAccessToken = signAccessToken(authUser);
   const hashedNewRefreshToken = hashRefreshToken(newRefreshToken);
 
-  await authRepository.rotateRefreshToken(parseId(authUser.id), hashedCurrentToken, hashedNewRefreshToken)
+  await authRepository.rotateRefreshToken(parseId(authUser.sub), hashedCurrentToken, hashedNewRefreshToken)
   return {newAccessToken, newRefreshToken};
 
 } 

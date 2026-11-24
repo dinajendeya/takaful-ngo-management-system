@@ -1,17 +1,13 @@
-import { prisma } from "../../../lib/prisma.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
-import {
-  FamilyRequestStatus,
-  FamilyRequestType,
-} from "../../../generated/prisma/enums.js";
+import { FamilyRequestStatus } from "../../../generated/prisma/enums.js";
+import { prisma } from "../../../lib/prisma.js";
 import * as familyMemberRepository from "./family-member.repository.js";
 import * as familyRepository from "./family.repository.js";
-import type { FamilyRequestApprovalData } from "../types/family-request.types.js";
+import type { FamilyMemberChanges } from "../types/family-member.types.js";
+import type { FamilyUpdateAggregateData } from "../types/family.types.js";
 
 type CreateFamilyRequestData = {
-  type: FamilyRequestType;
-  familyId?: bigint;
-  requestedById: bigint;
+  familyId: bigint;
   title: string;
   beforeData: Prisma.InputJsonValue;
   afterData: Prisma.InputJsonValue;
@@ -19,173 +15,78 @@ type CreateFamilyRequestData = {
 };
 
 export const createFamilyRequest = async (data: CreateFamilyRequestData) =>
-  prisma.familyRequest.create({
-    data: {
-      type: data.type,
-      ...(data.familyId !== undefined && { familyId: data.familyId }),
-      requestedById: data.requestedById,
-      title: data.title,
-      beforeData: data.beforeData,
-      afterData: data.afterData,
-      ...(data.justification !== undefined && { justification: data.justification }),
-    },
-  });
+  prisma.familyRequest.create({ data });
 
-export const findFamilyRequestById = async (
-  id: bigint,
-  tx: Prisma.TransactionClient | typeof prisma = prisma,
-) =>
+export const findFamilyRequestById = async (id: bigint, tx: Prisma.TransactionClient | typeof prisma = prisma) =>
   tx.familyRequest.findUnique({
     where: { id },
     include: {
-      family: true,
-      requestedBy: true,
-      approvedBy: true,
-      reviewedBy: true,
+      family: { select: { id: true, publicId: true, branchId: true, primaryPhone: true, status: true } },
+      reviewedBy: { select: { id: true, fullName: true, role: true } },
     },
   });
 
-export const findPendingRequestByFamilyId = async (
-  familyId: bigint,
-  tx: Prisma.TransactionClient | typeof prisma = prisma,
-) =>
-  tx.familyRequest.findFirst({
-    where: {
-      familyId,
-      type: FamilyRequestType.UPDATE,
-      status: FamilyRequestStatus.PENDING,
-    },
-  });
+export const findPendingRequestByFamilyId = async (familyId: bigint) =>
+  prisma.familyRequest.findFirst({ where: { familyId, status: FamilyRequestStatus.PENDING } });
 
-export const findManyFamilyRequests = async (
-  status?: FamilyRequestStatus,
-  type?: FamilyRequestType,
-) =>
-  prisma.familyRequest.findMany({
-    where: {
-      ...(status !== undefined && { status }),
-      ...(type !== undefined && { type }),
-    },
-    include: {
-      family: true,
-      requestedBy: true,
-      approvedBy: true,
-      reviewedBy: true,
-    },
-    orderBy: { id: "desc" },
-  });
-
-export const findRequestByStatus = async (status: FamilyRequestStatus) =>
-  prisma.familyRequest.findMany({
-    where: { status },
-    include: {
-      family: true,
-      requestedBy: true,
-      approvedBy: true,
-      reviewedBy: true,
-    },
-    orderBy: { id: "asc" },
-  });
-
-const approvePendingFamilyRequest = async (
-  id: bigint,
-  familyId: bigint,
-  reviewerId: bigint,
-  tx: Prisma.TransactionClient | typeof prisma = prisma,
-) => {
-  const now = new Date();
-  return tx.familyRequest.updateMany({
-    where: { id, status: FamilyRequestStatus.PENDING },
-    data: {
-      status: FamilyRequestStatus.APPROVED,
-      familyId,
-      approvedById: reviewerId,
-      approvedAt: now,
-      reviewedById: reviewerId,
-      reviewedAt: now,
-    },
-  });
+export const findManyFamilyRequests = async (filter: { status?: FamilyRequestStatus; branchId?: bigint }, page = 1, limit = 20) => {
+  const where: Prisma.FamilyRequestWhereInput = {
+    ...(filter.status && { status: filter.status }),
+    ...(filter.branchId && { family: { branchId: filter.branchId } }),
+  };
+  const [items, total] = await prisma.$transaction([
+    prisma.familyRequest.findMany({
+      where,
+      include: { family: { select: { id: true, publicId: true, branchId: true, primaryPhone: true, status: true } }, reviewedBy: { select: { id: true, fullName: true, role: true } } },
+      orderBy: { id: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.familyRequest.count({ where }),
+  ]);
+  return { items, total, page, limit, pages: Math.ceil(total / limit) };
 };
 
-export const approveFamilyRequest = async (
-  id: bigint,
-  reviewerId: bigint,
-  approval: FamilyRequestApprovalData,
-) =>
+export const findFamilyRequestsByFamilyId = async (familyId: bigint, page = 1, limit = 20) => {
+  const where = { familyId };
+  const [items, total] = await prisma.$transaction([
+    prisma.familyRequest.findMany({
+      where,
+      include: { family: { select: { id: true, publicId: true, branchId: true, primaryPhone: true, status: true } }, reviewedBy: { select: { id: true, fullName: true, role: true } } },
+      orderBy: { id: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.familyRequest.count({ where }),
+  ]);
+  return { items, total, page, limit, pages: Math.ceil(total / limit) };
+};
+
+export const approveFamilyRequest = async (id: bigint, reviewerId: bigint, familyId: bigint, family: FamilyUpdateAggregateData, members: FamilyMemberChanges) =>
   prisma.$transaction(async (tx) => {
     const request = await findFamilyRequestById(id, tx);
     if (!request) throw new Error("Family request not found");
-    if (request.status !== FamilyRequestStatus.PENDING) {
-      throw new Error("Only pending requests can be approved");
-    }
-    if (request.type !== approval.type) {
-      throw new Error("Approval data does not match the request type");
-    }
-
-    let familyId = request.familyId;
-    if (approval.type === FamilyRequestType.REGISTRATION) {
-      familyId = (await familyRepository.createFamilyAggregate(approval.family, tx)).id;
-    } else {
-      if (familyId === null || familyId !== approval.familyId) {
-        throw new Error("Update request family does not match its snapshot");
-      }
-      const family =
-        await familyRepository.findFamilyForRequestApproval(familyId, tx);
-      if (!family) throw new Error("Family not found");
-      await familyRepository.updateFamilyAggregate(
-        familyId,
-        approval.family,
-        tx,
-      );
-      await familyMemberRepository.applyFamilyMemberChanges(
-        familyId,
-        request.requestedById,
-        approval.members,
-        tx,
-      );
-    }
-
-    if (familyId === null) {
-      throw new Error("Approved request must reference a family");
-    }
-    const result = await approvePendingFamilyRequest(
-      id,
-      familyId,
-      reviewerId,
-      tx,
-    );
+    if (request.status !== FamilyRequestStatus.PENDING) throw new Error("Only pending requests can be approved");
+    if (request.familyId !== familyId) throw new Error("Update request family does not match its snapshot");
+    if (!(await familyRepository.findFamilyForRequestApproval(familyId, tx))) throw new Error("Family no longer exists");
+    await familyRepository.updateFamilyAggregate(familyId, family, tx);
+    await familyMemberRepository.applyFamilyMemberChanges(familyId, reviewerId, members, tx);
+    const result = await tx.familyRequest.updateMany({
+      where: { id, status: FamilyRequestStatus.PENDING },
+      data: { status: FamilyRequestStatus.APPROVED, reviewedById: reviewerId, reviewedAt: new Date() },
+    });
     if (result.count !== 1) throw new Error("Request is no longer pending");
     return findFamilyRequestById(id, tx);
   });
 
-export const rejectPendingFamilyRequest = async (
-  id: bigint,
-  reviewerId: bigint,
-  rejectionReason: string,
-) =>
+export const rejectPendingFamilyRequest = async (id: bigint, reviewerId: bigint, rejectionReason: string) =>
   prisma.familyRequest.updateMany({
     where: { id, status: FamilyRequestStatus.PENDING },
-    data: {
-      status: FamilyRequestStatus.REJECTED,
-      reviewedById: reviewerId,
-      reviewedAt: new Date(),
-      rejectionReason,
-    },
+    data: { status: FamilyRequestStatus.REJECTED, reviewedById: reviewerId, reviewedAt: new Date(), rejectionReason },
   });
 
-export const cancelPendingFamilyRequest = async (
-  id: bigint,
-  ownerId: bigint,
-  reason: string,
-) =>
+export const cancelPendingFamilyRequest = async (id: bigint, familyId: bigint, reason?: string) =>
   prisma.familyRequest.updateMany({
-    where: {
-      id,
-      requestedById: ownerId,
-      status: FamilyRequestStatus.PENDING,
-    },
-    data: {
-      status: FamilyRequestStatus.CANCELLED,
-      cancellationReason: reason,
-    },
+    where: { id, familyId, status: FamilyRequestStatus.PENDING },
+    data: { status: FamilyRequestStatus.CANCELLED, ...(reason !== undefined && { cancellationReason: reason }) },
   });
