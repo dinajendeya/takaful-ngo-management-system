@@ -2,14 +2,12 @@ import { UserRole } from "../../generated/prisma/enums.js";
 
 export enum PrincipalType {
   USER = "USER",
-  DONOR = "DONOR",
-  FAMILY_MEMBER = "FAMILY_MEMBER",
+  FAMILY = "FAMILY",
 }
 
 export interface AuthUser {
-  id: string;
-  email: string;
-  type: PrincipalType;
+  sub: string;
+  principalType: PrincipalType;
   role?: UserRole;
   branchId?: string | null;
 }

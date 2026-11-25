@@ -20,7 +20,7 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 export const changePassword = async (req: Request<UserParams>, res: Response) => {
-  const result = await authService.changePassword(req.params.id, req.body, req.user!.id);
+  const result = await authService.changePassword(req.params.id, req.body, req.user!.sub);
   return res.status(200).json({ success: true, data: serialize(result) });
 };
 
@@ -35,11 +35,11 @@ export const deactivateUser = async (req: Request<UserParams>, res: Response) =>
 };
 
 export const me = async (req: Request, res: Response) => {
-  const user = await authService.me(req.user!.id);
+  const user = await authService.me(req.user!.sub);
   return res.status(200).json({ success: true, data: serialize(user) });
 };
 
 export const logout = async (req: Request, res: Response) => {
-  const result = await authService.logout(req.user!.id);
+  const result = await authService.logout(req.user!.sub);
   return res.status(200).json({ success: true, data: result });
 };

@@ -7,7 +7,7 @@ const addressSchema = z.object({
   city: z.string({ message: "City is required" }).trim().min(3, { message: "City must be at least 3 charachters" })
   .max(100, { message: "City cannot exceed 100 characters" }),
   neighborhood: z.string().trim().min(3, { message: "neighborhood must be 3 charachters" })
-    .max(200, { message: "Neighborhood cannot exceed 200 characters" }),
+  .max(200, { message: "Neighborhood cannot exceed 200 characters" }),
   street: z.string().trim().max(200, { message: "Street cannot exceed 200 characters" }).optional(),
   nearbyLandmark: z.string().trim().max(200, { message: "Nearby landmark cannot exceed 200 characters" }).optional(),
   additionalDetails: z.string().trim().max(1000, { message: "Additional details cannot exceed 1000 characters" }).optional(),
@@ -25,7 +25,7 @@ const assessmentSchema = z.object({
 });
 
 export const createFamilySchema = z.object({
-  branchId: z.coerce.bigint({ message: "Branch is required" }),
+  branchId: idSchema,
   primaryPhone: phoneSchema,
   emergencyPhone: phoneSchema.optional(),
   password: passwordSchema,
@@ -33,9 +33,12 @@ export const createFamilySchema = z.object({
   currentAddress: addressSchema,
 });
 
+export const createEmployeeFamilySchema = createFamilySchema.omit({ password: true });
+
 export const updateFamilySchema = createFamilySchema.partial();
 
 export const createAssessmentSchema = assessmentSchema;
+
 export const updateAssessmentSchema = assessmentSchema.partial();
 
 export const rejectFamilySchema = z.object({
@@ -45,6 +48,7 @@ export const rejectFamilySchema = z.object({
 
 export type AddressDto = z.infer<typeof addressSchema>;
 export type CreateFamilyDto = z.infer<typeof createFamilySchema>;
+export type CreateEmployeeFamilyDto = z.infer<typeof createEmployeeFamilySchema>;
 export type UpdateFamilyDto = z.infer<typeof updateFamilySchema>;
 export type CreateAssessmentDto = z.infer<typeof createAssessmentSchema>;
 export type UpdateAssessmentDto = z.infer<typeof updateAssessmentSchema>;
