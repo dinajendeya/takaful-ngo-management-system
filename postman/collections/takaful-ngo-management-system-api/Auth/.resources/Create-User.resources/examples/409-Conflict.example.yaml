@@ -1,0 +1,19 @@
+$kind: http-example
+name: '409 Conflict'
+request:
+  url: '{{baseUrl}}/api/auth/users'
+  method: POST
+response:
+  statusCode: 409
+  statusText: Conflict
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": false,
+        "reason": "A user with the same email address already exists in the system.",
+        "message": "Conflict"
+      }

@@ -1,0 +1,7 @@
+$kind: collection
+name: Branches
+description: |-
+  Manages Takaful NGO branches across Gaza governorates.
+  Each branch operates in one of the five governorates: NORTH_GAZA, GAZA, DEIR_AL_BALAH, KHAN_YOUNIS, or RAFAH.
+  Branches can be activated or deactivated and serve as the organizational unit for users and families.
+order: 3000

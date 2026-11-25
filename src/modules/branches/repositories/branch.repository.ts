@@ -1,53 +1,59 @@
 import { prisma } from "../../../lib/prisma.js";
-import { GAZA_GOVERNORATES } from "../constants/governorates.js";
-import type { CreateBranchDto, UpdateBranchDto } from "../schemas/branch.schema.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 
-export class BranchRepository {
-  async create(data: CreateBranchDto & { publicId: string }) {
-    return prisma.branch.create({
-      data: {
-        publicId: data.publicId,
-        name: data.name,
-        governorate: data.governorate,
-        ...(data.address !== undefined ? { address: data.address } : {}),
-        ...(data.phone !== undefined ? { phone: data.phone } : {}),
-      },
-    });
-  }
+type CreateBranchData = {
+  name: string;
+  governorate: Prisma.BranchCreateInput["governorate"];
+  address?: string | undefined;
+  phone?: string | undefined;
+};
 
-  async findMany() {
-    return prisma.branch.findMany({ orderBy: { createdAt: "desc" } });
-  }
+type UpdateBranchData = {
+  name?: string | undefined;
+  governorate?: Prisma.BranchCreateInput["governorate"] | undefined;
+  address?: string | undefined;
+  phone?: string | undefined;
+};
 
-  async findById(id: bigint) {
-    return prisma.branch.findUnique({ where: { id } });
-  }
+export const create = async (data: CreateBranchData) =>
+  prisma.branch.create({
+    data: {
+      name: data.name,
+      governorate: data.governorate,
+      ...(data.address && { address: data.address }),
+      ...(data.phone && { phone: data.phone }),
+    },
+  });
 
-  async findByPublicId(publicId: string) {
-    return prisma.branch.findUnique({ where: { publicId } });
-  }
+export const findMany = async () =>
+  prisma.branch.findMany({ orderBy: { createdAt: "desc" } });
 
-  async findByName(name: string) {
-    return prisma.branch.findUnique({ where: { name } });
-  }
+export const findById = async (id: bigint) =>
+  prisma.branch.findUnique({ where: { id } });
 
-  async update(publicId: string, data: UpdateBranchDto) {
-    return prisma.branch.update({
-      where: { publicId },
-      data: {
-        ...(data.name !== undefined ? { name: data.name } : {}),
-        ...(data.governorate !== undefined ? { governorate: data.governorate } : {}),
-        ...(data.address !== undefined ? { address: data.address } : {}),
-        ...(data.phone !== undefined ? { phone: data.phone } : {}),
-      },
-    });
-  }
+export const findByName = async (name: string) =>
+  prisma.branch.findUnique({ where: { name } });
 
-  async activate(publicId: string) {
-    return prisma.branch.update({ where: { publicId }, data: { isActive: true } });
-  }
+export const update = async (id: bigint, data: UpdateBranchData) =>
+  prisma.branch.update({
+    where: { id },
+    data: {
+      ...(data.name && { name: data.name }),
+      ...(data.governorate && { governorate: data.governorate }),
+      ...(data.address && { address: data.address }),
+      ...(data.phone && { phone: data.phone }),
+    },
+  });
 
-  async deactivate(publicId: string) {
-    return prisma.branch.update({ where: { publicId }, data: { isActive: false } });
-  }
-}
+export const activate = async (id: bigint) =>
+  prisma.branch.update({
+    where: { id },
+    data: { isActive: true },
+  });
+
+export const deactivate = async (id: bigint) =>
+  prisma.branch.update({
+    where: { id },
+    data: { isActive: false },
+  });
+

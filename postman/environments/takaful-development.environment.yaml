@@ -1,0 +1,36 @@
+name: Takaful Development
+values:
+  - key: baseUrl
+    value: 'http://localhost:3000'
+  - key: accessToken
+    value: ''
+  - key: refreshToken
+    value: ''
+  - key: adminEmail
+    value: admin@takaful.ps
+  - key: adminPassword
+    value: Admin@123456
+  - key: branchPublicId
+    value: BRN-000001
+  - key: userPublicId
+    value: USR-000001
+  - key: familyPublicId
+    value: FAM-000001
+  - key: familyMemberPublicId
+    value: FMB-000001
+  - key: projectPublicId
+    value: PRJ-000001
+  - key: distributionPublicId
+    value: DST-000001
+  - key: inventoryPublicId
+    value: INV-000001
+  - key: itemPublicId
+    value: ITM-000001
+  - key: donorPublicId
+    value: DNR-000001
+  - key: donationPublicId
+    value: DON-000001
+  - key: financialAccountPublicId
+    value: ACC-000001
+  - key: transactionPublicId
+    value: TXN-000001

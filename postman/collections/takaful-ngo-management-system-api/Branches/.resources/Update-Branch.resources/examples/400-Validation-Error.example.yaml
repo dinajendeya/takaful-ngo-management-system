@@ -1,0 +1,19 @@
+$kind: http-example
+name: '400 Validation Error'
+request:
+  url: '{{baseUrl}}/api/branches/BRN-000001'
+  method: PATCH
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": false,
+        "reason": "One or more required fields are missing or have invalid values (e.g. invalid format, out-of-range value, or constraint violation).",
+        "message": "Validation failed"
+      }

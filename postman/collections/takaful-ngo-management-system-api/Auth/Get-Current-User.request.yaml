@@ -1,0 +1,56 @@
+$kind: http-request
+name: Get Current User
+order: 4000
+method: GET
+url: '{{baseUrl}}/api/auth/me'
+description: |-
+  ## Get Current User
+
+  Returns the profile of the currently authenticated user based on the provided JWT access token.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "USR-000001",
+      "fullName": "Ahmed Al-Masri",
+      "email": "ahmed.masri@takaful.ps",
+      "role": "ADMIN",
+      "isActive": true,
+      "createdAt": "2026-11-19T10:00:00.000Z",
+      "updatedAt": "2026-11-19T10:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("User data is present", () => {
+          const data = pm.response.json().data;
+          pm.expect(data).to.have.property("publicId");
+          pm.expect(data).to.have.property("email");
+          pm.expect(data).to.have.property("role");
+      });
+examples: './.resources/Get-Current-User.resources/examples'

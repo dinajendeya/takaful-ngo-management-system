@@ -1,0 +1,19 @@
+$kind: http-example
+name: '401 Unauthorized'
+request:
+  url: '{{baseUrl}}/api/auth/users/USR-000001/change-password'
+  method: PATCH
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": false,
+        "reason": "No valid JWT access token was provided, or the token has expired, or the current password provided is incorrect.",
+        "message": "Unauthorized"
+      }

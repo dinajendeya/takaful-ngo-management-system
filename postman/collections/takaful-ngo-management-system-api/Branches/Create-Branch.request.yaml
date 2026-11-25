@@ -1,0 +1,87 @@
+$kind: http-request
+name: Create Branch
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/branches'
+description: |-
+  ## Create Branch
+
+  Creates a new branch for the Takaful NGO. Only administrators are authorized to perform this action.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Obtain the token from the Login endpoint and store it in the `accessToken` environment variable.
+
+  ### Request Body Fields
+  | Field        | Type   | Required | Description |
+  |--------------|--------|----------|-------------|
+  | name         | string | ✅ Yes   | Branch display name (3–150 characters) |
+  | governorate  | enum   | ✅ Yes   | One of: `NORTH_GAZA`, `GAZA`, `DEIR_AL_BALAH`, `KHAN_YOUNIS`, `RAFAH` |
+  | address      | string | ❌ No    | Physical address (max 500 characters) |
+  | phone        | string | ❌ No    | Palestinian mobile number — format: `05XXXXXXXX` or `+97005XXXXXXXX` |
+
+  ### Success Response `201 Created`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "BRN-000001",
+      "name": "Gaza City Branch",
+      "governorate": "GAZA",
+      "address": "Al-Rimal, Gaza City, Palestine",
+      "phone": "0599000001",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing required fields or invalid values)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks admin privileges
+  - `409 Conflict` — A branch with the same name already exists
+
+  ### Post-request Script
+  On success, the `branchPublicId` environment variable is automatically set to the newly created branch's `publicId` for use in subsequent requests.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Gaza City Branch",
+      "governorate": "GAZA",
+      "address": "Al-Rimal, Gaza City, Palestine",
+      "phone": "0599000001"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Branch publicId is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("publicId");
+      });
+      pm.test("Branch name matches", () => {
+          pm.expect(pm.response.json().data.name).to.eql("Gaza City Branch");
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.publicId) {
+          pm.environment.set("branchPublicId", data.publicId);
+      }
+examples: './.resources/Create-Branch.resources/examples'

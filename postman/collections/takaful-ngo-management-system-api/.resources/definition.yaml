@@ -1,0 +1,109 @@
+$kind: collection
+name: 'Takaful NGO Management System API'
+description: |-
+  # Takaful NGO Management System API
+
+  ## Project Overview
+  Takaful is a comprehensive NGO management platform built to support humanitarian operations across Gaza governorates. It manages branches, families, beneficiaries, projects, inventory, distributions, donors, and finance — all in a single modular system.
+
+  **Stack:** Express.js · TypeScript · Prisma ORM · PostgreSQL · JWT Authentication · Modular Monolith
+
+  ---
+
+  ## Authentication Flow
+  1. Call **POST /api/auth/login** with `email` and `password`.
+  2. The Login request automatically stores `accessToken` and `refreshToken` in the active environment.
+  3. All protected endpoints use `Authorization: Bearer {{accessToken}}`.
+  4. When the access token expires, call **POST /api/auth/refresh-token** to obtain a new one.
+  5. Call **POST /api/auth/logout** to invalidate the session.
+
+  ---
+
+  ## Base URL
+  All requests use the `{{baseUrl}}` environment variable.
+  - **Development:** `http://localhost:3000`
+  - Example: `{{baseUrl}}/api/branches`
+
+  ---
+
+  ## Environment Variables
+  Select the **Takaful Development** environment before sending requests.
+
+  | Variable | Description |
+  |---|---|
+  | `baseUrl` | API base URL |
+  | `accessToken` | JWT access token (auto-set on login) |
+  | `refreshToken` | JWT refresh token (auto-set on login) |
+  | `branchPublicId` | Public ID of a branch for path param tests |
+  | `userPublicId` | Public ID of a user for path param tests |
+
+  ---
+
+  ## Pagination Standards
+  List endpoints support the following query parameters:
+
+  | Parameter | Type | Description |
+  |---|---|---|
+  | `page` | integer | Page number (default: 1) |
+  | `pageSize` | integer | Items per page (default: 20, max: 100) |
+  | `search` | string | Full-text search keyword |
+  | `sortBy` | string | Field name to sort by |
+  | `sortDirection` | `asc` or `desc` | Sort direction |
+
+  Paginated responses follow this shape:
+  ```json
+  {
+    "success": true,
+    "data": [],
+    "meta": { "page": 1, "pageSize": 20, "total": 0, "totalPages": 0 }
+  }
+  ```
+
+  ---
+
+  ## Error Response Standards
+  All errors follow a consistent shape with a `reason` field explaining the cause before the message:
+  ```json
+  {
+    "success": false,
+    "reason": "Human-readable explanation of why the error occurred.",
+    "message": "Short error label"
+  }
+  ```
+
+  | HTTP Status | Message | Reason |
+  |---|---|---|
+  | 400 | Validation failed | Invalid or missing fields |
+  | 401 | Unauthorized | Missing or expired JWT |
+  | 403 | Forbidden | Insufficient role/permission |
+  | 404 | Resource not found | No matching record found |
+
+  ---
+
+  ## API Conventions
+  - All endpoints are prefixed with `/api/`
+  - Resources use **plural kebab-case** (e.g. `/api/branches`, `/api/family-members`)
+  - Mutations use `PATCH` (partial update), not `PUT`
+  - Soft-delete via `PATCH /:publicId/deactivate`
+  - Re-activation via `PATCH /:publicId/activate`
+
+  ---
+
+  ## Public ID Conventions
+  Every resource exposes a human-readable `publicId` instead of the internal numeric `id`.
+  Format: `{PREFIX}-{6-digit-zero-padded-number}`
+
+  | Resource | Prefix | Example |
+  |---|---|---|
+  | Branch | BRN | BRN-000001 |
+  | User | USR | USR-000001 |
+  | Family | FAM | FAM-000001 |
+  | Project | PRJ | PRJ-000001 |
+  | Donor | DNR | DNR-000001 |
+  | Inventory | INV | INV-000001 |
+  | Transaction | TXN | TXN-000001 |
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'

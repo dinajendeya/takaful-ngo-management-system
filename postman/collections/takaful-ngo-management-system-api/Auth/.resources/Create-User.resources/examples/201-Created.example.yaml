@@ -1,0 +1,26 @@
+$kind: http-example
+name: '201 Created'
+request:
+  url: '{{baseUrl}}/api/auth/users'
+  method: POST
+response:
+  statusCode: 201
+  statusText: Created
+  headers:
+    - key: Content-Type
+      value: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "success": true,
+        "data": {
+          "publicId": "USR-000001",
+          "fullName": "Ahmed Al-Masri",
+          "email": "ahmed.masri@takaful.ps",
+          "role": "FIELD_RESEARCHER",
+          "isActive": true,
+          "createdAt": "2026-11-19T10:00:00.000Z",
+          "updatedAt": "2026-11-19T10:00:00.000Z"
+        }
+      }

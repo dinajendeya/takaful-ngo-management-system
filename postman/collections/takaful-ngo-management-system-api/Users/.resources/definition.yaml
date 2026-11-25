@@ -1,0 +1,6 @@
+$kind: collection
+name: Users
+description: |-
+  Manages system users across all branches. Users are assigned roles that control their access level within the Takaful platform.
+  Roles: ADMIN, BRANCH_MANAGER, FIELD_RESEARCHER, INVENTORY_MANAGER, FINANCE_MANAGER.
+order: 2000

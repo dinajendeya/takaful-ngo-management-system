@@ -1,58 +1,35 @@
 import type { Request, Response } from "express";
-import { BranchService } from "../services/branch.service.js";
+import * as branchService from "../services/branch.service.js";
+import { serialize } from "../../../common/utils/serializer.js";
 
-type BranchParams = { publicId: string };
+type BranchParams = { id: string };
 
-type BranchParam = {pubilcId: string};
+export const create = async (req: Request, res: Response) => {
+  const branch = await branchService.createBranch(req.body);
+  return res.status(201).json({ success: true, data: serialize(branch) });
+};
 
-export class BranchControllers{
-  constructor(private readonly branchService = new BranchService()){};
-  async creat(req:Request<BranchParams>, res: Response){
-    const branch = await this.branchService.createBranch(req.body);
-    return res.status(201).json({success: true, data: branch});
-  }
-}
-export class BranchController {
-  constructor(private readonly branchService = new BranchService()) {}
+export const findAll = async (req: Request, res: Response) => {
+  const branches = await branchService.getBranches();
+  return res.status(200).json({ success: true, data: serialize(branches) });
+};
 
-  async create(req: Request, res: Response) {
-    const branch = await this.branchService.createBranch(req.body);
-    return res.status(201).json({ success: true, data: branch });
-  }
+export const findOne = async (req: Request<BranchParams>, res: Response) => {
+  const branch = await branchService.getBranchById(req.params.id);
+  return res.status(200).json({ success: true, data: serialize(branch) });
+};
 
-  async findAll(req: Request, res: Response) {
-    const branches = await this.branchService.getBranches();
-    return res.status(200).json({ success: true, data: branches });
-  }
+export const update = async (req: Request<BranchParams>, res: Response) => {
+  const branch = await branchService.updateBranch(req.params.id, req.body);
+  return res.status(200).json({ success: true, data: serialize(branch) });
+};
 
-  async findOne(req: Request<BranchParams>, res: Response) {
-    const { publicId } = req.params;
-    const branch = await this.branchService.getBranchByPublicId(publicId);
-    return res.status(200).json({ success: true, data: branch });
-  }
+export const activate = async (req: Request<BranchParams>, res: Response) => {
+  const branch = await branchService.activateBranch(req.params.id);
+  return res.status(200).json({ success: true, data: serialize(branch) });
+};
 
-  async update(req: Request<BranchParams>, res: Response) {
-    const { publicId } = req.params;
-    const branch = await this.branchService.updateBranch(
-      publicId,
-      req.body
-    );
-
-    return res.status(200).json({ success: true, data: branch });
-  }
-
-  async activate(req: Request<BranchParams>, res: Response) {
-    const { publicId } = req.params;
-    const branch = await this.branchService.activateBranch(publicId);
-    return res.status(200).json({ success: true, data: branch });
-  }
-
-  async deactivate(req: Request<BranchParams>, res: Response) {
-    const { publicId } = req.params;
-    const branch = await this.branchService.deactivateBranch(publicId);
-    return res.status(200).json({ success: true, data: branch });
-  }
-
-}
-
-export const branchController = new BranchController();
+export const deactivate = async (req: Request<BranchParams>, res: Response) => {
+  const branch = await branchService.deactivateBranch(req.params.id);
+  return res.status(200).json({ success: true, data: serialize(branch) });
+};

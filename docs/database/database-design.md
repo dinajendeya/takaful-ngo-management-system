@@ -76,8 +76,6 @@ families        1 — 1  family_assessments
 families        1 — N  family_requests
 families        1 — N  distributions
 
-family_members  1 — N  family_requests (requested_by)
-
 categories      1 — N  items
 items           1 — N  inventory_items
 items           1 — N  parcel_items
@@ -165,10 +163,6 @@ Family
   +---- FamilyRequests
   |
   +---- Distribution
-
-FamilyMember
-  |
-  +---- FamilyRequests (requested_by)
 
 Category
   |
@@ -273,6 +267,11 @@ marital_status:              SINGLE, MARRIED, DIVORCED, WIDOWED
 category:                    FOOD, CLEANING, BLANKETS, SCHOOL,
                              ELECTRONICS, MEDICAL, MONETARY, COURSE
 
+unit:                        PIECE, KILOGRAM, GRAM, LITER, MILLILITER,
+                             BOX, PACKAGE, SET, PAIR, METER, ROLL, CARTON, BAG
+
+parcel_template_status:      DRAFT
+
 employment_status:           EMPLOYED, UNEMPLOYED, SELF_EMPLOYED, STUDENT, RETIRED, FREELANCED, OTHER
 
 education_level:             NONE, KINDERGARTEN, PRIMARY, PREPARATORY, SECONDARY, DIPLOMA, BACHELOR, MASTER, PHD
@@ -313,34 +312,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 
 ---
 
-### 3.5 Public ID Prefixes
-
-| Entity | Prefix | Example |
-|---|---|---|
-| Admin | `ADM` | ADM-0001 |
-| Branch Manager | `MGR` | MGR-0005 |
-| Field Researcher | `RES` | RES-0015 |
-| Inventory Manager | `INV` | INV-0002 |
-| Finance Manager | `FIN` | FIN-00001 |
-| Branch | `BRN` | BRN-0001 |
-| Family | `FAM` | FAM-000001 |
-| Family Member | `MBR` | MBR-000001 |
-| Family Request | `FREQ` | FREQ-000001 |
-| Inventory | `WHS` | WHS-0001 |
-| Item | `ITM` | ITM-000001 |
-| Parcel Template | `PRC` | PRC-0001 |
-| Project | `PRJ` | PRJ-00001 |
-| Distribution | `DST` | DST-000001 |
-| Donor | `DNR` | DNR-00001 |
-| Donation Request | `DREQ` | DREQ-00001 |
-| Donation | `DON` | DON-00001 |
-| Financial Account | `ACC` | ACC-0001 |
-| Financial Transaction | `FINTRX` | FINTRX-00001 |
-| Inventory Transaction | `INVTRX` | INVTRX-00001 |
-| Expense Category | `EXP` | EXP-0001 |
-
----
-
 ### 3.6 Table Definitions
 
 #### Module 1 — Identity & Access
@@ -350,7 +321,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | name | VARCHAR(150) | NOT NULL, UNIQUE | |
 | governorate | VARCHAR(100) | NOT NULL | |
 | address | TEXT | | |
@@ -362,7 +332,6 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | branch_id | BIGINT | | branches(id) |
 | full_name | VARCHAR(150) | NOT NULL | |
 | email | VARCHAR(255) | NOT NULL, UNIQUE | |
@@ -409,7 +378,11 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
 | public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
-| primary_phone | VARCHAR(30) | NOT NULL | |
+| branch_id | BIGINT | NOT NULL | branches(id) |
+| password_hash | TEXT | NOT NULL | |
+| refresh_token | TEXT | UNIQUE | |
+| must_change_password | BOOLEAN | NOT NULL, DEFAULT FALSE | |
+| primary_phone | VARCHAR(30) | NOT NULL, UNIQUE | |
 | emergency_phone | VARCHAR(30) | | |
 | original_address_id | BIGINT | NOT NULL | addresses(id) |
 | current_address_id | BIGINT | NOT NULL | addresses(id) |
@@ -418,13 +391,13 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | verified_by | BIGINT | | users(id) |
 | verified_at | TIMESTAMP | | |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | |
+| deleted_at | TIMESTAMP | NULL | |
 
 **`family_members`**
 
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | family_id | BIGINT | NOT NULL | families(id) ON DELETE CASCADE |
 | national_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | full_name | VARCHAR(200) | NOT NULL | |
@@ -469,16 +442,16 @@ audit_action:                CREATE, UPDATE, DELETE, LOGIN, LOGOUT,
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | UUID | NOT NULL, UNIQUE, DEFAULT uuid_generate_v4() | |
+| title | VARCHAR(200) | NOT NULL | |
 | family_id | BIGINT | NOT NULL | families(id) |
-| requested_by | BIGINT | NOT NULL | family_members(id) |
 | before_data | JSONB | NOT NULL | |
 | after_data | JSONB | NOT NULL | |
 | justification | TEXT | | |
-| status | request_status | NOT NULL, DEFAULT 'PENDING' | |
+| status | family_request_status | NOT NULL, DEFAULT 'PENDING' | |
 | reviewed_by | BIGINT | | users(id) |
-| reviewed_at | TIMESTAMPTZ | | |
+| reviewed_at | TIMESTAMP | | |
 | rejection_reason | TEXT | | |
+| cancellation_reason | TEXT | | |
 
 **Review Consistency Constraint:**
 ```
@@ -491,6 +464,11 @@ CHECK (
 )
 ```
 
+Requests are owned by the family account. A partial unique index on `family_id`
+allows at most one `PENDING` request per family. Request data is immutable after
+submission; only review or cancellation status and audit fields are changed.
+Legacy requests are retained in `legacy_family_requests` during migration.
+
 ---
 
 #### Module 3 — Project & Distribution
@@ -500,7 +478,6 @@ CHECK (
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | name | VARCHAR(200) | NOT NULL | |
 | description | TEXT | | |
 | start_date | DATE | NOT NULL | |
@@ -523,7 +500,6 @@ CHECK (
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | family_id | BIGINT | NOT NULL | families(id) |
 | branch_id | BIGINT | NOT NULL | branches(id) |
 | project_id | BIGINT | NOT NULL | projects(id) |
@@ -541,40 +517,48 @@ CHECK (
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| name | VARCHAR(100) | NOT NULL, UNIQUE | |
+| name | category | NOT NULL | |
 | description | TEXT | | |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | |
+| deleted_at | TIMESTAMP | NULL | |
+Unique active category names with a partial unique index on `name` WHERE `deleted_at IS NULL`.
 
 **`items`**
 
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
-| category_id | BIGINT | NOT NULL | categories(id) |
+| category_id | BIGINT | NOT NULL | categories(id) ON DELETE RESTRICT |
 | name | VARCHAR(150) | NOT NULL | |
-| unit | VARCHAR(50) | NOT NULL | |
+| unit | unit | NOT NULL | |
 | description | TEXT | | |
+| deleted_at | TIMESTAMP | NULL | |
 
 **`inventories`**
 
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
-| inventory_type | inventory_type | NOT NULL | |
 | name | VARCHAR(150) | NOT NULL | |
-| branch_id | BIGINT | | branches(id) |
+| branch_id | BIGINT | NOT NULL | branches(id) |
 | location | TEXT | | |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | |
+| created_by_id | BIGINT | NOT NULL | users(id) |
+UNIQUE(branch_id, name)
 
 **`inventory_items`**
 
 | Column | Type | Constraints | References |
 |---|---|---|---|
-| inventory_id | BIGINT | PK, NOT NULL | inventories(id) ON DELETE CASCADE |
+| inventory_id | BIGINT | PK, NOT NULL | inventories(id) ON DELETE RESTRICT |
 | item_id | BIGINT | PK, NOT NULL | items(id) |
-| quantity | INTEGER | NOT NULL, CHECK >= 0 | |
-
+| quantity | NUMERIC(12, 3) | NOT NULL, CHECK >= 0 | |
+| low_stock_threshold | NUMERIC(12, 3) | NULL, CHECK >= 0 | |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | |
+| notes | TEXT | NULL | |
 ---
 
 #### Module 5 — Parcel Management
@@ -584,18 +568,19 @@ CHECK (
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | name | VARCHAR(150) | NOT NULL | |
 | description | TEXT | | |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | |
+| status | parcel_template_status | NOT NULL, DEFAULT 'DRAFT' | |
+| created_by_id | BIGINT | NOT NULL | users(id) |
 
 **`parcel_items`**
 
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | parcel_template_id | BIGINT | PK, NOT NULL | parcel_templates(id) ON DELETE CASCADE |
-| item_id | BIGINT | PK, NOT NULL | items(id) |
-| quantity | INTEGER | NOT NULL, CHECK > 0 | |
+| item_id | BIGINT | PK, NOT NULL | items(id) ON DELETE RESTRICT |
+| quantity | NUMERIC(12,3) | NOT NULL, CHECK > 0 | |
 
 ---
 
@@ -735,15 +720,15 @@ the parent for the inventory_transaction_items and the inventory_transaction_par
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | transaction_id | BIGINT | PK, NOT NULL | inventory_transactions(id) ON DELETE CASCADE |
-| item_id | BIGINT | PK, NOT NULL | items(id) |
-| quantity | INTEGER | NOT NULL, CHECK > 0 | |
+| item_id | BIGINT | PK, NOT NULL | items(id) ON DELETE RESTRICT |
+| quantity | NUMERIC(12,3) | NOT NULL, CHECK > 0 | |
 
 **`inventory_transaction_parcels`**
 
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | transaction_id | BIGINT | PK, NOT NULL | inventory_transactions(id) ON DELETE CASCADE |
-| parcel_template_id | BIGINT | PK, NOT NULL | parcel_templates(id) |
+| parcel_template_id | BIGINT | PK, NOT NULL | parcel_templates(id) ON DELETE RESTRICT |
 | quantity | INTEGER | NOT NULL, CHECK > 0 | |
 
 ---

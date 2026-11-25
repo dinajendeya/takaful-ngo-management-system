@@ -1,63 +1,55 @@
-import { BranchRepository } from "../repositories/branch.repository.js";
+import * as branchRepository from "../repositories/branch.repository.js";
+import { parseId } from "../../../common/utils/parseId.js";
 import type { CreateBranchDto, UpdateBranchDto } from "../schemas/branch.schema.js";
 
-export class BranchService {
-  constructor(private readonly branchRepository = new BranchRepository()) {}
+export const createBranch = async (data: CreateBranchDto) => {
+  const existingBranch = await branchRepository.findByName(data.name);
+  if (existingBranch) throw new Error("Branch with this name already exists");
+  
+  return branchRepository.create({...data,});
+};
 
-  async createBranch(data: CreateBranchDto) {
-    const existingBranch = await this.branchRepository.findByName(data.name);
+export const getBranches = async () => {
+  return branchRepository.findMany();
+};
 
-    if (existingBranch) {
-      throw new Error("Branch with this name already exists");
-    }
+export const getBranchById = async (id: string) => {
+  const branch = await branchRepository.findById(parseId(id));
+  if (!branch) throw new Error("Branch not found");
 
-    return this.branchRepository.create({
-      ...data,
-      publicId: `BRN-${Date.now()}`,
-    });
+  return branch;
+};
+
+export const updateBranch = async (
+  id: string,
+  data: UpdateBranchDto
+) => {
+  const branchId = parseId(id);
+  const branch = await branchRepository.findById(branchId);
+
+  if (!branch) throw new Error("Branch not found");
+
+  return branchRepository.update(branchId, data);
+};
+
+export const activateBranch = async (id: string) => {
+  const branchId = parseId(id);
+  const branch = await branchRepository.findById(branchId);
+
+  if (!branch) {
+    throw new Error("Branch not found");
   }
 
-  async getBranches() {
-    return this.branchRepository.findMany();
+  return branchRepository.activate(branchId);
+};
+
+export const deactivateBranch = async (id: string) => {
+  const branchId = parseId(id);
+  const branch = await branchRepository.findById(branchId);
+
+  if (!branch) {
+    throw new Error("Branch not found");
   }
 
-  async getBranchByPublicId(publicId: string) {
-    const branch = await this.branchRepository.findByPublicId(publicId);
-
-    if (!branch) {
-      throw new Error("Branch not found");
-    }
-
-    return branch;
-  }
-
-  async updateBranch(publicId: string, data: UpdateBranchDto) {
-    const branch = await this.branchRepository.findByPublicId(publicId);
-
-    if (!branch) {
-      throw new Error("Branch not found");
-    }
-
-    return this.branchRepository.update(publicId, data);
-  }
-
-  async activateBranch(publicId: string) {
-    const branch = await this.branchRepository.findByPublicId(publicId);
-
-    if (!branch) {
-      throw new Error("Branch not found");
-    }
-
-    return this.branchRepository.activate(publicId);
-  }
-
-  async deactivateBranch(publicId: string) {
-    const branch = await this.branchRepository.findByPublicId(publicId);
-
-    if (!branch) {
-      throw new Error("Branch not found");
-    }
-
-    return this.branchRepository.deactivate(publicId);
-  }
-}
+  return branchRepository.deactivate(branchId);
+};

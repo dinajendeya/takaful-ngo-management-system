@@ -27,8 +27,6 @@ erDiagram
     FAMILIES ||--o{ FAMILY_REQUESTS : "submits"
     FAMILIES ||--o{ DISTRIBUTIONS : "receives"
 
-    FAMILY_MEMBERS ||--o{ FAMILY_REQUESTS : "requested_by"
-
     CATEGORIES ||--o{ ITEMS : "classifies"
 
     ITEMS ||--o{ INVENTORY_ITEMS : "stocked_in"
@@ -112,6 +110,10 @@ erDiagram
     FAMILIES {
         bigint id PK
         varchar public_id
+        bigint branch_id FK
+        text password_hash
+        text refresh_token
+        boolean must_change_password
         varchar primary_phone
         varchar emergency_phone
         bigint original_address_id FK
@@ -121,10 +123,10 @@ erDiagram
         bigint verified_by FK
         timestamp verified_at
         timestamp created_at
+        timestamp deleted_at
     }
     FAMILY_MEMBERS {
         bigint id PK
-        varchar public_id
         bigint family_id FK
         varchar national_id
         varchar full_name
@@ -158,55 +160,62 @@ erDiagram
     }
     FAMILY_REQUESTS {
         bigint id PK
-        uuid public_id
         bigint family_id FK
-        bigint requested_by FK
+        varchar title
         jsonb before_data
         jsonb after_data
         text justification
-        request_status status
+        family_request_status status
         bigint reviewed_by FK
         timestamptz reviewed_at
         text rejection_reason
+        text cancellation_reason
     }
     CATEGORIES {
         bigint id PK
-        varchar name
+        category name
         text description
+        timestamp created_at
+        timestamp updated_at
+        timestamp deleted_at
     }
     ITEMS {
         bigint id PK
-        varchar public_id
         bigint category_id FK
         varchar name
-        varchar unit
+        unit unit
         text description
+        timestamp deleted_at
     }
     INVENTORIES {
         bigint id PK
-        varchar public_id
-        inventory_type inventory_type
         varchar name
         bigint branch_id FK
         text location
         timestamp created_at
+        timestamp updated_at
+        bigint created_by_id FK
     }
     INVENTORY_ITEMS {
         bigint inventory_id PK,FK
         bigint item_id PK,FK
-        integer quantity
+        numeric quantity
+        numeric low_stock_threshold
+        timestamp updated_at
+        text notes
     }
     PARCEL_TEMPLATES {
         bigint id PK
-        varchar public_id
         varchar name
         text description
         timestamp created_at
+        parcel_template_status status
+        bigint created_by_id FK
     }
     PARCEL_ITEMS {
         bigint parcel_template_id PK,FK
         bigint item_id PK,FK
-        integer quantity
+        numeric quantity
     }
     PROJECTS {
         bigint id PK

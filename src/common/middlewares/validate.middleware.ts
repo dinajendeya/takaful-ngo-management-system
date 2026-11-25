@@ -1,8 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
-import { ZodObject } from "zod";
+import type { ZodType } from "zod";
 
-export const validate = (schema: ZodObject) => (req: Request, res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
+export const validate = (schema: ZodType, source: "body" | "params" | "query" = "body") =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(source === "params" ? req.params : source === "query" ? req.query : req.body);
 
     if (!result.success) {
         return res.status(400).json({
@@ -15,7 +16,8 @@ export const validate = (schema: ZodObject) => (req: Request, res: Response, nex
         })
     }
 
-    req.body = result.data;
+    if (source === "body") req.body = result.data;
+    if (source === "query") Object.defineProperty(req, "query", { configurable: true, enumerable: true, writable: true, value: result.data });
 
     next();
 };

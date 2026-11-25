@@ -1,0 +1,25 @@
+$kind: http-request
+name: Activate User
+order: 5000
+method: PATCH
+url: '{{baseUrl}}/api/users/{{userPublicId}}/activate'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: publicId
+    value: '{{userPublicId}}'
+    description: The public ID of the user to activate
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("User is active", () => {
+          pm.expect(pm.response.json().data.isActive).to.eql(true);
+      });
