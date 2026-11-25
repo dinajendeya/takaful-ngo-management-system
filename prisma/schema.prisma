@@ -134,6 +134,8 @@ enum Unit {
 
 enum ParcelTemplateStatus {
   DRAFT
+  ACTIVE
+  ARCHIVED
 
   @@map("parcel_template_status")
 }

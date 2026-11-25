@@ -6,7 +6,7 @@ const idString = z.string().regex(/^\d+$/, "Invalid id");
 export const createItemSchema = z.object({
   categoryId: idString,
   name: z.string().min(1).max(150),
-  unit: z.nativeEnum(Unit),
+  unit: z.enum(Unit),
   description: z.string().max(5000).optional(),
 });
 
