@@ -1,0 +1,109 @@
+$kind: http-request
+name: Create Template
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/templates'
+description: |-
+  ## Create Parcel Template
+
+  Creates a new parcel template that defines a named, reusable set of catalog items and their quantities. Templates are later used to generate aid parcels during distributions.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only **ADMIN**, **BRANCH_MANAGER**, and **INVENTORY_MANAGER** roles are authorized to create templates.
+
+  ### Request Body Fields
+  | Field       | Type            | Required | Description |
+  |-------------|-----------------|----------|-------------|
+  | name        | string          | ✅ Yes   | Unique template name (1–150 characters) |
+  | description | string          | ❌ No    | Detailed description of the template (max 5000 characters) |
+  | items       | array           | ✅ Yes   | At least one item entry. Each entry has `itemId` and `quantity` |
+  | items[].itemId | string (numeric) | ✅ Yes | The catalog item's numeric ID (e.g. `"1"`) |
+  | items[].quantity | number (positive) | ✅ Yes | Quantity of the item included in the parcel |
+  | status      | enum            | ❌ No    | Initial status: `DRAFT` (default), `ACTIVE`, or `ARCHIVED` |
+
+  ### Success Response `201 Created`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "1",
+      "name": "Basic Food Parcel",
+      "description": "Standard monthly food aid parcel for a family of four",
+      "status": "DRAFT",
+      "createdById": "1",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "parcelItems": [
+        {
+          "id": "1",
+          "itemId": "1",
+          "quantity": 10,
+          "item": {
+            "publicId": "ITM-000001",
+            "name": "Rice",
+            "unit": "KILOGRAM"
+          }
+        }
+      ]
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing required fields, invalid item ID format, or quantity ≤ 0)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required role
+  - `404 Not Found` — One or more `itemId` values do not match any catalog item
+  - `409 Conflict` — A parcel template with the same name already exists
+
+  ### Post-request Script
+  On success, the `parcelTemplateId` environment variable is automatically set to the newly created template's `id` for use in subsequent requests.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Basic Food Parcel",
+      "description": "Standard monthly food aid parcel for a family of four",
+      "items": [
+        {
+          "itemId": "{{catalogItemId}}",
+          "quantity": 10
+        }
+      ],
+      "status": "DRAFT"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Template id is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("id");
+      });
+      pm.test("Template name matches", () => {
+          pm.expect(pm.response.json().data.name).to.eql("Basic Food Parcel");
+      });
+      pm.test("Template has parcelItems array", () => {
+          pm.expect(pm.response.json().data.parcelItems).to.be.an("array").with.length.above(0);
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.id) {
+          pm.environment.set("parcelTemplateId", data.id);
+      }
+examples: './.resources/Create-Template.resources/examples'

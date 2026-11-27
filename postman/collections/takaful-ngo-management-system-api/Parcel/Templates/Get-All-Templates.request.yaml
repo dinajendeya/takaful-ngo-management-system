@@ -1,0 +1,76 @@
+$kind: http-request
+name: Get All Templates
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/templates'
+description: |-
+  ## Get All Parcel Templates
+
+  Retrieves a list of all parcel templates registered in the system, ordered by creation date (newest first). Each template includes its full item list with catalog item details.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. All authenticated users can access this endpoint.
+
+  ### Query Parameters
+  No query parameters supported — returns all templates.
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "1",
+        "name": "Basic Food Parcel",
+        "description": "Standard monthly food aid parcel for a family of four",
+        "status": "ACTIVE",
+        "createdById": "1",
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z",
+        "parcelItems": [
+          {
+            "id": "1",
+            "itemId": "1",
+            "quantity": 10,
+            "item": {
+              "publicId": "ITM-000001",
+              "name": "Rice",
+              "unit": "KILOGRAM"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Data is an array", () => {
+          pm.expect(pm.response.json().data).to.be.an("array");
+      });
+      pm.test("Each template has id and name", () => {
+          pm.response.json().data.forEach(t => {
+              pm.expect(t).to.have.property("id");
+              pm.expect(t).to.have.property("name");
+          });
+      });
+examples: './.resources/Get-All-Templates.resources/examples'

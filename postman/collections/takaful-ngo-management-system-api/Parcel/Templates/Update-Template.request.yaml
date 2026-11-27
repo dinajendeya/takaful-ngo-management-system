@@ -1,0 +1,106 @@
+$kind: http-request
+name: Update Template
+order: 4000
+method: PATCH
+url: '{{baseUrl}}/api/templates/{{parcelTemplateId}}'
+description: |-
+  ## Update Parcel Template
+
+  Partially updates an existing parcel template. All fields are optional — only the fields provided will be updated. If `items` is provided, the entire item list is **replaced** (old items are deleted and the new ones are inserted).
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only **ADMIN**, **BRANCH_MANAGER**, and **INVENTORY_MANAGER** roles are authorized to update templates.
+
+  ### Path Parameters
+  | Parameter | Type            | Required | Description |
+  |-----------|-----------------|----------|-------------|
+  | id        | string (numeric)| ✅ Yes   | The template's numeric ID. Stored in the `parcelTemplateId` environment variable. |
+
+  ### Request Body Fields (all optional)
+  | Field           | Type            | Description |
+  |-----------------|-----------------|-------------|
+  | name            | string          | Updated template name (1–150 characters) |
+  | description     | string          | Updated description (max 5000 characters) |
+  | status          | enum            | New status: `DRAFT`, `ACTIVE`, or `ARCHIVED` |
+  | items           | array           | Replacement item list — at least one entry required if provided. Replaces all existing items. |
+  | items[].itemId  | string (numeric)| Catalog item numeric ID |
+  | items[].quantity| number (positive)| Quantity of the item |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "1",
+      "name": "Basic Food Parcel - Updated",
+      "description": "Updated standard monthly food aid parcel",
+      "status": "ACTIVE",
+      "createdById": "1",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-02T00:00:00.000Z",
+      "parcelItems": [
+        {
+          "id": "2",
+          "itemId": "1",
+          "quantity": 15,
+          "item": {
+            "publicId": "ITM-000001",
+            "name": "Rice",
+            "unit": "KILOGRAM"
+          }
+        }
+      ]
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (invalid field values or empty items array)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required role
+  - `404 Not Found` — No parcel template found with the given ID, or one of the new item IDs is invalid
+  - `409 Conflict` — Another template already uses the new name
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{parcelTemplateId}}'
+    description: 'The numeric ID of the parcel template to update. Set automatically by the Create Template request.'
+body:
+  type: json
+  content: |-
+    {
+      "name": "Basic Food Parcel - Updated",
+      "status": "ACTIVE",
+      "items": [
+        {
+          "itemId": "{{catalogItemId}}",
+          "quantity": 15
+        }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Template id is unchanged", () => {
+          pm.expect(pm.response.json().data.id).to.eql(pm.environment.get("parcelTemplateId"));
+      });
+      pm.test("Updated parcelItems are present", () => {
+          pm.expect(pm.response.json().data.parcelItems).to.be.an("array").with.length.above(0);
+      });
+examples: './.resources/Update-Template.resources/examples'

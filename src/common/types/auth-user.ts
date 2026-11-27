@@ -3,6 +3,7 @@ import { UserRole } from "../../generated/prisma/enums.js";
 export enum PrincipalType {
   USER = "USER",
   FAMILY = "FAMILY",
+  DONOR = "DONOR"
 }
 
 export interface AuthUser {

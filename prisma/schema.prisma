@@ -148,6 +148,26 @@ enum ProjectStatus {
   CANCELLED
 }
 
+enum DonorType {
+  INDIVIDUAL
+  ORGANIZATION
+  COMPANY
+  NGO
+  GOVERNMENT
+}
+
+enum DonationType {
+  MONETARY
+  ITEM
+  PARCEL
+}
+
+enum DonationStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -450,6 +470,7 @@ model Project {
   createdBy      User            @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   projectParcels ProjectParcel[]
   distributions  Distribution[]
+  donations      Donation[]
 
   @@index([createdById])
   @@map("projects")
@@ -491,4 +512,41 @@ model Distribution {
   @@index([parcelTemplateId])
   @@index([distributedById])
   @@map("distributions")
+}
+
+model Donor {
+  id            BigInt    @id @default(autoincrement())
+  name          String    @db.VarChar(255)
+  contactPerson String    @map("contact_person") @db.VarChar(255)
+  phone         String    @db.VarChar(30)
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @map("password_hash")
+  refreshToken  String?   @unique @map("refresh_token")
+  donorType     DonorType @map("donor_type")
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  donations Donation[]
+
+  @@map("donors")
+}
+
+model Donation {
+  id           BigInt         @id @default(autoincrement())
+  donorId      BigInt         @map("donor_id")
+  donationType DonationType   @map("donation_type")
+  projectId    BigInt?        @map("project_id")
+  status       DonationStatus @default(PENDING)
+  amount       Decimal?       @db.Decimal(15, 2)
+  currency     String?        @db.VarChar(10)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  receivedAt   DateTime?      @map("received_at") @db.Timestamptz(6)
+  note         String?        @db.Text
+
+  donor   Donor    @relation(fields: [donorId], references: [id], onDelete: Restrict)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  @@index([projectId])
+  @@map("donations")
 }

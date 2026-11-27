@@ -19,7 +19,8 @@ export const login = async (data: FamilyLoginDto) => {
 
 export const refresh = async (token: string) => {
   let tokenUser: AuthUser;
-  try { tokenUser = verifyRefreshToken(token); } catch { throw new Error("Invalid refresh token"); }
+  try { tokenUser = verifyRefreshToken(token); } 
+    catch { throw new Error("Invalid refresh token"); }
   if (tokenUser.principalType !== PrincipalType.FAMILY) throw new Error("Invalid refresh token");
   const currentHash = hashRefreshToken(token);
   const family = await familyRepository.findFamilyByRefreshToken(currentHash);

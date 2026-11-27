@@ -1,0 +1,52 @@
+$kind: http-request
+name: Archive Template
+order: 5000
+method: DELETE
+url: '{{baseUrl}}/api/templates/{{parcelTemplateId}}'
+description: |-
+  ## Archive Parcel Template
+
+  Soft-deletes a parcel template by setting its status to **ARCHIVED**. Archived templates are no longer usable for new distributions but their data is fully preserved for audit and historical reference. This action is **irreversible** through the API.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only **ADMIN** role is authorized to archive templates.
+
+  ### Path Parameters
+  | Parameter | Type            | Required | Description |
+  |-----------|-----------------|----------|-------------|
+  | id        | string (numeric)| ✅ Yes   | The template's numeric ID. Stored in the `parcelTemplateId` environment variable. |
+
+  ### Request Body
+  No request body required.
+
+  ### Success Response `204 No Content`
+  Empty body — no response content is returned on success.
+
+  ### Error Responses
+  - `400 Bad Request` — The provided ID is not a valid numeric string
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks admin privileges
+  - `404 Not Found` — No parcel template found with the given ID
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{parcelTemplateId}}'
+    description: 'The numeric ID of the parcel template to archive. Set automatically by the Create Template request.'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 204", () => {
+          pm.response.to.have.status(204);
+      });
+      pm.test("Response body is empty", () => {
+          pm.expect(pm.response.text()).to.eql("");
+      });
+examples: './.resources/Archive-Template.resources/examples'
