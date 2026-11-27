@@ -44,5 +44,12 @@ export const findProjectParcel = async (projectId: bigint, parcelTemplateId: big
         projectId,
         parcelTemplateId,
       },
+    }, 
+    include: {
+        targetQuantity: true,
+        availableQuantity: true,
+        project: { select: { id: true, name: true } },
+        parcelTemplate: { select: { id: true, name: true } },
+    
     },
   });
