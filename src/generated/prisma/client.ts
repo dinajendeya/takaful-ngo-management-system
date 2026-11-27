@@ -126,3 +126,13 @@ export type ProjectParcel = Prisma.ProjectParcelModel
  * 
  */
 export type Distribution = Prisma.DistributionModel
+/**
+ * Model Donor
+ * 
+ */
+export type Donor = Prisma.DonorModel
+/**
+ * Model Donation
+ * 
+ */
+export type Donation = Prisma.DonationModel

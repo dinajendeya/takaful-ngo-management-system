@@ -67,7 +67,9 @@ export const ModelName = {
   ParcelItem: 'ParcelItem',
   Project: 'Project',
   ProjectParcel: 'ProjectParcel',
-  Distribution: 'Distribution'
+  Distribution: 'Distribution',
+  Donor: 'Donor',
+  Donation: 'Donation'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -333,6 +335,38 @@ export const DistributionScalarFieldEnum = {
 } as const
 
 export type DistributionScalarFieldEnum = (typeof DistributionScalarFieldEnum)[keyof typeof DistributionScalarFieldEnum]
+
+
+export const DonorScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  contactPerson: 'contactPerson',
+  phone: 'phone',
+  email: 'email',
+  passwordHash: 'passwordHash',
+  refreshToken: 'refreshToken',
+  donorType: 'donorType',
+  notes: 'notes',
+  createdAt: 'createdAt'
+} as const
+
+export type DonorScalarFieldEnum = (typeof DonorScalarFieldEnum)[keyof typeof DonorScalarFieldEnum]
+
+
+export const DonationScalarFieldEnum = {
+  id: 'id',
+  donorId: 'donorId',
+  donationType: 'donationType',
+  projectId: 'projectId',
+  status: 'status',
+  amount: 'amount',
+  currency: 'currency',
+  createdAt: 'createdAt',
+  receivedAt: 'receivedAt',
+  note: 'note'
+} as const
+
+export type DonationScalarFieldEnum = (typeof DonationScalarFieldEnum)[keyof typeof DonationScalarFieldEnum]
 
 
 export const SortOrder = {

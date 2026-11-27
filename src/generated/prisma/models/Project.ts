@@ -247,6 +247,7 @@ export type ProjectWhereInput = {
   createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   projectParcels?: Prisma.ProjectParcelListRelationFilter
   distributions?: Prisma.DistributionListRelationFilter
+  donations?: Prisma.DonationListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -261,6 +262,7 @@ export type ProjectOrderByWithRelationInput = {
   createdBy?: Prisma.UserOrderByWithRelationInput
   projectParcels?: Prisma.ProjectParcelOrderByRelationAggregateInput
   distributions?: Prisma.DistributionOrderByRelationAggregateInput
+  donations?: Prisma.DonationOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -278,6 +280,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   createdBy?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   projectParcels?: Prisma.ProjectParcelListRelationFilter
   distributions?: Prisma.DistributionListRelationFilter
+  donations?: Prisma.DonationListRelationFilter
 }, "id">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -321,6 +324,7 @@ export type ProjectCreateInput = {
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedProjectsInput
   projectParcels?: Prisma.ProjectParcelCreateNestedManyWithoutProjectInput
   distributions?: Prisma.DistributionCreateNestedManyWithoutProjectInput
+  donations?: Prisma.DonationCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -334,6 +338,7 @@ export type ProjectUncheckedCreateInput = {
   createdAt?: Date | string
   projectParcels?: Prisma.ProjectParcelUncheckedCreateNestedManyWithoutProjectInput
   distributions?: Prisma.DistributionUncheckedCreateNestedManyWithoutProjectInput
+  donations?: Prisma.DonationUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -347,6 +352,7 @@ export type ProjectUpdateInput = {
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedProjectsNestedInput
   projectParcels?: Prisma.ProjectParcelUpdateManyWithoutProjectNestedInput
   distributions?: Prisma.DistributionUpdateManyWithoutProjectNestedInput
+  donations?: Prisma.DonationUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -360,6 +366,7 @@ export type ProjectUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectParcels?: Prisma.ProjectParcelUncheckedUpdateManyWithoutProjectNestedInput
   distributions?: Prisma.DistributionUncheckedUpdateManyWithoutProjectNestedInput
+  donations?: Prisma.DonationUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -452,6 +459,11 @@ export type ProjectScalarRelationFilter = {
   isNot?: Prisma.ProjectWhereInput
 }
 
+export type ProjectNullableScalarRelationFilter = {
+  is?: Prisma.ProjectWhereInput | null
+  isNot?: Prisma.ProjectWhereInput | null
+}
+
 export type ProjectCreateNestedManyWithoutCreatedByInput = {
   create?: Prisma.XOR<Prisma.ProjectCreateWithoutCreatedByInput, Prisma.ProjectUncheckedCreateWithoutCreatedByInput> | Prisma.ProjectCreateWithoutCreatedByInput[] | Prisma.ProjectUncheckedCreateWithoutCreatedByInput[]
   connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCreatedByInput | Prisma.ProjectCreateOrConnectWithoutCreatedByInput[]
@@ -526,6 +538,22 @@ export type ProjectUpdateOneRequiredWithoutDistributionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutDistributionsInput, Prisma.ProjectUpdateWithoutDistributionsInput>, Prisma.ProjectUncheckedUpdateWithoutDistributionsInput>
 }
 
+export type ProjectCreateNestedOneWithoutDonationsInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutDonationsInput, Prisma.ProjectUncheckedCreateWithoutDonationsInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutDonationsInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneWithoutDonationsNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutDonationsInput, Prisma.ProjectUncheckedCreateWithoutDonationsInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutDonationsInput
+  upsert?: Prisma.ProjectUpsertWithoutDonationsInput
+  disconnect?: Prisma.ProjectWhereInput | boolean
+  delete?: Prisma.ProjectWhereInput | boolean
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutDonationsInput, Prisma.ProjectUpdateWithoutDonationsInput>, Prisma.ProjectUncheckedUpdateWithoutDonationsInput>
+}
+
 export type ProjectCreateWithoutCreatedByInput = {
   id?: bigint | number
   name: string
@@ -536,6 +564,7 @@ export type ProjectCreateWithoutCreatedByInput = {
   createdAt?: Date | string
   projectParcels?: Prisma.ProjectParcelCreateNestedManyWithoutProjectInput
   distributions?: Prisma.DistributionCreateNestedManyWithoutProjectInput
+  donations?: Prisma.DonationCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutCreatedByInput = {
@@ -548,6 +577,7 @@ export type ProjectUncheckedCreateWithoutCreatedByInput = {
   createdAt?: Date | string
   projectParcels?: Prisma.ProjectParcelUncheckedCreateNestedManyWithoutProjectInput
   distributions?: Prisma.DistributionUncheckedCreateNestedManyWithoutProjectInput
+  donations?: Prisma.DonationUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutCreatedByInput = {
@@ -600,6 +630,7 @@ export type ProjectCreateWithoutProjectParcelsInput = {
   createdAt?: Date | string
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedProjectsInput
   distributions?: Prisma.DistributionCreateNestedManyWithoutProjectInput
+  donations?: Prisma.DonationCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutProjectParcelsInput = {
@@ -612,6 +643,7 @@ export type ProjectUncheckedCreateWithoutProjectParcelsInput = {
   createdById: bigint | number
   createdAt?: Date | string
   distributions?: Prisma.DistributionUncheckedCreateNestedManyWithoutProjectInput
+  donations?: Prisma.DonationUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutProjectParcelsInput = {
@@ -640,6 +672,7 @@ export type ProjectUpdateWithoutProjectParcelsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedProjectsNestedInput
   distributions?: Prisma.DistributionUpdateManyWithoutProjectNestedInput
+  donations?: Prisma.DonationUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutProjectParcelsInput = {
@@ -652,6 +685,7 @@ export type ProjectUncheckedUpdateWithoutProjectParcelsInput = {
   createdById?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   distributions?: Prisma.DistributionUncheckedUpdateManyWithoutProjectNestedInput
+  donations?: Prisma.DonationUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutDistributionsInput = {
@@ -664,6 +698,7 @@ export type ProjectCreateWithoutDistributionsInput = {
   createdAt?: Date | string
   createdBy: Prisma.UserCreateNestedOneWithoutCreatedProjectsInput
   projectParcels?: Prisma.ProjectParcelCreateNestedManyWithoutProjectInput
+  donations?: Prisma.DonationCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutDistributionsInput = {
@@ -676,6 +711,7 @@ export type ProjectUncheckedCreateWithoutDistributionsInput = {
   createdById: bigint | number
   createdAt?: Date | string
   projectParcels?: Prisma.ProjectParcelUncheckedCreateNestedManyWithoutProjectInput
+  donations?: Prisma.DonationUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutDistributionsInput = {
@@ -704,6 +740,7 @@ export type ProjectUpdateWithoutDistributionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedProjectsNestedInput
   projectParcels?: Prisma.ProjectParcelUpdateManyWithoutProjectNestedInput
+  donations?: Prisma.DonationUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutDistributionsInput = {
@@ -716,6 +753,75 @@ export type ProjectUncheckedUpdateWithoutDistributionsInput = {
   createdById?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectParcels?: Prisma.ProjectParcelUncheckedUpdateManyWithoutProjectNestedInput
+  donations?: Prisma.DonationUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutDonationsInput = {
+  id?: bigint | number
+  name: string
+  description?: string | null
+  startDate: Date | string
+  endDate?: Date | string | null
+  status?: $Enums.ProjectStatus
+  createdAt?: Date | string
+  createdBy: Prisma.UserCreateNestedOneWithoutCreatedProjectsInput
+  projectParcels?: Prisma.ProjectParcelCreateNestedManyWithoutProjectInput
+  distributions?: Prisma.DistributionCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutDonationsInput = {
+  id?: bigint | number
+  name: string
+  description?: string | null
+  startDate: Date | string
+  endDate?: Date | string | null
+  status?: $Enums.ProjectStatus
+  createdById: bigint | number
+  createdAt?: Date | string
+  projectParcels?: Prisma.ProjectParcelUncheckedCreateNestedManyWithoutProjectInput
+  distributions?: Prisma.DistributionUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutDonationsInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutDonationsInput, Prisma.ProjectUncheckedCreateWithoutDonationsInput>
+}
+
+export type ProjectUpsertWithoutDonationsInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutDonationsInput, Prisma.ProjectUncheckedUpdateWithoutDonationsInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutDonationsInput, Prisma.ProjectUncheckedCreateWithoutDonationsInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutDonationsInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutDonationsInput, Prisma.ProjectUncheckedUpdateWithoutDonationsInput>
+}
+
+export type ProjectUpdateWithoutDonationsInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.UserUpdateOneRequiredWithoutCreatedProjectsNestedInput
+  projectParcels?: Prisma.ProjectParcelUpdateManyWithoutProjectNestedInput
+  distributions?: Prisma.DistributionUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutDonationsInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  startDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  endDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumProjectStatusFieldUpdateOperationsInput | $Enums.ProjectStatus
+  createdById?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectParcels?: Prisma.ProjectParcelUncheckedUpdateManyWithoutProjectNestedInput
+  distributions?: Prisma.DistributionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyCreatedByInput = {
@@ -738,6 +844,7 @@ export type ProjectUpdateWithoutCreatedByInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectParcels?: Prisma.ProjectParcelUpdateManyWithoutProjectNestedInput
   distributions?: Prisma.DistributionUpdateManyWithoutProjectNestedInput
+  donations?: Prisma.DonationUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutCreatedByInput = {
@@ -750,6 +857,7 @@ export type ProjectUncheckedUpdateWithoutCreatedByInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectParcels?: Prisma.ProjectParcelUncheckedUpdateManyWithoutProjectNestedInput
   distributions?: Prisma.DistributionUncheckedUpdateManyWithoutProjectNestedInput
+  donations?: Prisma.DonationUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutCreatedByInput = {
@@ -770,11 +878,13 @@ export type ProjectUncheckedUpdateManyWithoutCreatedByInput = {
 export type ProjectCountOutputType = {
   projectParcels: number
   distributions: number
+  donations: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   projectParcels?: boolean | ProjectCountOutputTypeCountProjectParcelsArgs
   distributions?: boolean | ProjectCountOutputTypeCountDistributionsArgs
+  donations?: boolean | ProjectCountOutputTypeCountDonationsArgs
 }
 
 /**
@@ -801,6 +911,13 @@ export type ProjectCountOutputTypeCountDistributionsArgs<ExtArgs extends runtime
   where?: Prisma.DistributionWhereInput
 }
 
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountDonationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DonationWhereInput
+}
+
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -814,6 +931,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   projectParcels?: boolean | Prisma.Project$projectParcelsArgs<ExtArgs>
   distributions?: boolean | Prisma.Project$distributionsArgs<ExtArgs>
+  donations?: boolean | Prisma.Project$donationsArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -857,6 +975,7 @@ export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   createdBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   projectParcels?: boolean | Prisma.Project$projectParcelsArgs<ExtArgs>
   distributions?: boolean | Prisma.Project$distributionsArgs<ExtArgs>
+  donations?: boolean | Prisma.Project$donationsArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -872,6 +991,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     createdBy: Prisma.$UserPayload<ExtArgs>
     projectParcels: Prisma.$ProjectParcelPayload<ExtArgs>[]
     distributions: Prisma.$DistributionPayload<ExtArgs>[]
+    donations: Prisma.$DonationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
@@ -1279,6 +1399,7 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   createdBy<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   projectParcels<T extends Prisma.Project$projectParcelsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$projectParcelsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectParcelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   distributions<T extends Prisma.Project$distributionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$distributionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DistributionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  donations<T extends Prisma.Project$donationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$donationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DonationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1762,6 +1883,30 @@ export type Project$distributionsArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.DistributionScalarFieldEnum | Prisma.DistributionScalarFieldEnum[]
+}
+
+/**
+ * Project.donations
+ */
+export type Project$donationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Donation
+   */
+  select?: Prisma.DonationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Donation
+   */
+  omit?: Prisma.DonationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DonationInclude<ExtArgs> | null
+  where?: Prisma.DonationWhereInput
+  orderBy?: Prisma.DonationOrderByWithRelationInput | Prisma.DonationOrderByWithRelationInput[]
+  cursor?: Prisma.DonationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DonationScalarFieldEnum | Prisma.DonationScalarFieldEnum[]
 }
 
 /**

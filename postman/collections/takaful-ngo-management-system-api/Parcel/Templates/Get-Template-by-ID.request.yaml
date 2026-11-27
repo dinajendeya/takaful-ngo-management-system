@@ -1,0 +1,82 @@
+$kind: http-request
+name: Get Template by ID
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/templates/{{parcelTemplateId}}'
+description: |-
+  ## Get Parcel Template by ID
+
+  Retrieves the full details of a single parcel template using its numeric ID, including all associated parcel items with catalog item details.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. All authenticated users can access this endpoint.
+
+  ### Path Parameters
+  | Parameter | Type            | Required | Description |
+  |-----------|-----------------|----------|-------------|
+  | id        | string (numeric)| ✅ Yes   | The template's numeric ID (e.g. `1`). Stored in the `parcelTemplateId` environment variable after creating a template. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "1",
+      "name": "Basic Food Parcel",
+      "description": "Standard monthly food aid parcel for a family of four",
+      "status": "ACTIVE",
+      "createdById": "1",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "parcelItems": [
+        {
+          "id": "1",
+          "itemId": "1",
+          "quantity": 10,
+          "item": {
+            "publicId": "ITM-000001",
+            "name": "Rice",
+            "unit": "KILOGRAM"
+          }
+        }
+      ]
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — The provided ID is not a valid numeric string
+  - `401 Unauthorized` — Missing or invalid access token
+  - `404 Not Found` — No parcel template found with the given ID
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{parcelTemplateId}}'
+    description: 'The numeric ID of the parcel template (e.g. 1). Set automatically by the Create Template request.'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Template id matches", () => {
+          pm.expect(pm.response.json().data.id).to.eql(pm.environment.get("parcelTemplateId"));
+      });
+      pm.test("Template has parcelItems array", () => {
+          pm.expect(pm.response.json().data.parcelItems).to.be.an("array");
+      });
+      pm.test("Template has status field", () => {
+          pm.expect(pm.response.json().data).to.have.property("status");
+      });
+examples: './.resources/Get-Template-by-ID.resources/examples'

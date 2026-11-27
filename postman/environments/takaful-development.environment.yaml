@@ -28,6 +28,8 @@ values:
     value: '1'
   - key: catalogItemId
     value: '1'
+  - key: parcelTemplateId
+    value: '1'
   - key: itemPublicId
     value: ITM-000001
   - key: donorPublicId

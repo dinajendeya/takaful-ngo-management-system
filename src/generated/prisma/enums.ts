@@ -177,3 +177,32 @@ export const ProjectStatus = {
 } as const
 
 export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus]
+
+
+export const DonorType = {
+  INDIVIDUAL: 'INDIVIDUAL',
+  ORGANIZATION: 'ORGANIZATION',
+  COMPANY: 'COMPANY',
+  NGO: 'NGO',
+  GOVERNMENT: 'GOVERNMENT'
+} as const
+
+export type DonorType = (typeof DonorType)[keyof typeof DonorType]
+
+
+export const DonationType = {
+  MONETARY: 'MONETARY',
+  ITEM: 'ITEM',
+  PARCEL: 'PARCEL'
+} as const
+
+export type DonationType = (typeof DonationType)[keyof typeof DonationType]
+
+
+export const DonationStatus = {
+  PENDING: 'PENDING',
+  RECEIVED: 'RECEIVED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type DonationStatus = (typeof DonationStatus)[keyof typeof DonationStatus]
