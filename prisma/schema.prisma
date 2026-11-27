@@ -28,6 +28,7 @@ enum UserRole {
   FIELD_RESEARCHER
   INVENTORY_MANAGER
   FINANCE_MANAGER
+  DISTRIBUTOR
 }
 
 enum FamilyStatus {
