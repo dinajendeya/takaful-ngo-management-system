@@ -1,5 +1,4 @@
 import * as familyMemberRepository from "../repositories/family-member.repository.js";
-import * as familyRepository from "../repositories/family.repository.js";
 import { parseId } from "../../../common/utils/parseId.js";
 import { Relationship } from "../../../generated/prisma/enums.js";
 import { PrincipalType, type AuthUser } from "../../../common/types/auth-user.js";

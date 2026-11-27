@@ -1,0 +1,86 @@
+$kind: http-request
+name: Update Item
+order: 4000
+method: PATCH
+url: '{{baseUrl}}/api/items/{{catalogItemId}}'
+description: |-
+  ## Update Item
+
+  Partially updates an existing catalog item. All fields are optional — only the fields provided will be updated. If `categoryId` is changed, the new category must exist. If `name` is changed, it must remain unique within the (new) category.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Restricted** — Only users with the `ADMIN`, `BRANCH_MANAGER`, or `INVENTORY_MANAGER` role are authorized to update items.
+
+  ### Path Parameters
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | ✅ Yes   | The item's numeric ID. Stored in the `catalogItemId` environment variable. |
+
+  ### Request Body Fields (all optional)
+  | Field       | Type   | Description |
+  |-------------|--------|-------------|
+  | categoryId  | string | New parent category numeric ID |
+  | name        | string | Updated item name (1–150 characters) — must remain unique within the category |
+  | unit        | enum   | Updated unit — one of: `PIECE`, `KILOGRAM`, `GRAM`, `LITER`, `MILLILITER`, `BOX`, `PACKAGE`, `SET`, `PAIR`, `METER`, `ROLL`, `CARTON`, `BAG` |
+  | description | string | Updated description (max 5000 characters) |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": 1,
+      "categoryId": 1,
+      "name": "Rice Bag - 5kg",
+      "unit": "BAG",
+      "description": "Updated: 5kg white rice bag.",
+      "deletedAt": null,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-02T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (invalid unit, name too long, non-numeric categoryId)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required role
+  - `404 Not Found` — No item or category found with the given ID
+  - `409 Conflict` — Another item with the same name already exists in the target category
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{catalogItemId}}'
+    description: 'The numeric ID of the item to update (e.g. 1)'
+body:
+  type: json
+  content: |-
+    {
+      "name": "Rice Bag - 5kg",
+      "unit": "BAG",
+      "description": "Updated: Premium quality 5kg white rice bag, sufficient for a family of four for one week."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Item id is unchanged", () => {
+          pm.expect(String(pm.response.json().data.id)).to.eql(pm.environment.get("catalogItemId"));
+      });

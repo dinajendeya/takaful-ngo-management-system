@@ -1,9 +1,12 @@
-import type { createUserDTO } from "../schemas/user.schema.js";
 import { UserService } from "../sevices/user.service.js";
-import type {Request, Response, NextFunction} from  "express";
+import type { Request, Response } from "express";
 
 export class UserController {
-    constructor(private readonly userService = new UserService()){};
+    private readonly userService: UserService;
+
+    constructor(userService = new UserService()) {
+        this.userService = userService;
+    }
 
     async createUser(req: Request, res:Response){
         const user = this.userService.createUser(req.body);

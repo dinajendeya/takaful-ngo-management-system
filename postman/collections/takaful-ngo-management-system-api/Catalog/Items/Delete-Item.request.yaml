@@ -1,0 +1,54 @@
+$kind: http-request
+name: Delete Item
+order: 5000
+method: DELETE
+url: '{{baseUrl}}/api/items/{{catalogItemId}}'
+description: |-
+  ## Delete Item
+
+  Soft-deletes a catalog item by setting its `deletedAt` timestamp. The item remains in the database for historical reference but will not appear in normal list queries unless `includeDeleted=true` is passed. The item can be restored using the **Restore Item** endpoint.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Admin Only** — Only users with the `ADMIN` role are authorized to delete items. This is stricter than create/update which also allow `BRANCH_MANAGER` and `INVENTORY_MANAGER`.
+
+  ### Path Parameters
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | ✅ Yes   | The item's numeric ID. Stored in the `catalogItemId` environment variable. |
+
+  ### Success Response `204 No Content`
+  Empty response body — no content is returned on successful deletion.
+
+  ### Error Responses
+  - `400 Bad Request` — `id` is not a valid numeric value
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user is not an admin
+  - `404 Not Found` — No item found with the given ID
+
+  ### Post-request Script
+  On success, the `catalogItemId` environment variable is cleared.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{catalogItemId}}'
+    description: 'The numeric ID of the item to soft-delete (e.g. 1)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 204", () => {
+          pm.response.to.have.status(204);
+      });
+
+      if (pm.response.code === 204) {
+          pm.environment.unset("catalogItemId");
+      }

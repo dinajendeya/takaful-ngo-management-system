@@ -1,0 +1,52 @@
+$kind: http-request
+name: Family Logout
+order: 4000
+method: POST
+url: '{{baseUrl}}/api/family-auth/logout'
+description: |-
+  ## Family Logout
+
+  Invalidates the current family session by revoking the active refresh token. After logout, the stored tokens are no longer valid and the family must log in again.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header obtained from the **Family Login** endpoint.
+
+  > 🔒 **Family Principal Only** — Only tokens issued to a family are accepted.
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "message": "Logged out successfully"
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Token does not belong to a family principal
+
+  ### Post-request Script
+  On success, the `accessToken` and `refreshToken` environment variables are cleared.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+
+      if (pm.response.code === 200) {
+          pm.environment.unset("accessToken");
+          pm.environment.unset("refreshToken");
+      }

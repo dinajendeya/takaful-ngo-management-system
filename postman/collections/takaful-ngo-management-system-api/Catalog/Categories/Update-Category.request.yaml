@@ -1,0 +1,79 @@
+$kind: http-request
+name: Update Category
+order: 4000
+method: PATCH
+url: '{{baseUrl}}/api/categories/{{categoryId}}'
+description: |-
+  ## Update Category
+
+  Partially updates an existing catalog category. All fields are optional — only the fields provided will be updated. The `name` must still be a valid `CategoryType` enum value if supplied.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Restricted** — Only users with the `ADMIN`, `BRANCH_MANAGER`, or `INVENTORY_MANAGER` role are authorized to update categories.
+
+  ### Path Parameters
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | ✅ Yes   | The category's numeric ID. Stored in the `categoryId` environment variable. |
+
+  ### Request Body Fields (all optional)
+  | Field       | Type   | Description |
+  |-------------|--------|-------------|
+  | name        | enum   | Updated category type — one of: `FOOD`, `CLEANING`, `BLANKETS`, `SCHOOL`, `ELECTRONICS`, `MEDICAL`, `MONETARY`, `COURSE` |
+  | description | string | Updated description (max 5000 characters) |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": 1,
+      "name": "FOOD",
+      "description": "Updated description for food aid category.",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-02T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (invalid enum value or field too long)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required role
+  - `404 Not Found` — No category found with the given ID
+  - `409 Conflict` — Another category with the new name already exists
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{categoryId}}'
+    description: 'The numeric ID of the category to update (e.g. 1)'
+body:
+  type: json
+  content: |-
+    {
+      "description": "Updated: Essential food aid items including canned goods, dry rations, and emergency groceries."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Category id is unchanged", () => {
+          pm.expect(String(pm.response.json().data.id)).to.eql(pm.environment.get("categoryId"));
+      });

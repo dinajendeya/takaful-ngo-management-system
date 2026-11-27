@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import jwt from "jsonwebtoken";
-import { UserRole } from "../../generated/prisma/enums.js";
-import { PrincipalType, type AuthUser } from "../types/auth-user.js";
+import type { AuthUser } from "../types/auth-user.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error("JWT_SECRET is missing");

@@ -1,0 +1,81 @@
+$kind: http-request
+name: Create Category
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/categories'
+description: |-
+  ## Create Category
+
+  Creates a new catalog category. Categories group items by their type (e.g. Food, Medical, School). Each category name must be unique and must match one of the predefined `CategoryType` enum values.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Restricted** — Only users with the `ADMIN`, `BRANCH_MANAGER`, or `INVENTORY_MANAGER` role are authorized to create categories.
+
+  ### Request Body Fields
+  | Field       | Type   | Required | Description |
+  |-------------|--------|----------|-------------|
+  | name        | enum   | ✅ Yes   | Category type — one of: `FOOD`, `CLEANING`, `BLANKETS`, `SCHOOL`, `ELECTRONICS`, `MEDICAL`, `MONETARY`, `COURSE` |
+  | description | string | ❌ No    | Category description (max 5000 characters) |
+
+  ### Success Response `201 Created`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": 1,
+      "name": "FOOD",
+      "description": "Food aid items including canned goods and dry rations.",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (invalid or missing `name`)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required role
+  - `409 Conflict` — A category with this name already exists
+
+  ### Post-request Script
+  On success, the `categoryId` environment variable is automatically set to the newly created category's numeric `id`.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "FOOD",
+      "description": "Food aid items including canned goods, dry rations, and essential groceries."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Category id is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("id");
+      });
+      pm.test("Category name matches", () => {
+          pm.expect(pm.response.json().data.name).to.eql("FOOD");
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.id) {
+          pm.environment.set("categoryId", String(data.id));
+      }

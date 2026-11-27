@@ -140,6 +140,13 @@ enum ParcelTemplateStatus {
   @@map("parcel_template_status")
 }
 
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -154,9 +161,10 @@ model Branch {
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
-  users       User[]
-  families    Family[]
-  inventories Inventory[]
+  users         User[]
+  families      Family[]
+  inventories   Inventory[]
+  distributions Distribution[]
 
   @@map("branches")
 }
@@ -178,14 +186,16 @@ model User {
   branch Branch? @relation(fields: [branchId], references: [id])
 
   // Family module relations
-  createdFamilies         Family[]           @relation("FamilyCreatedBy")
-  verifiedFamilies        Family[]           @relation("FamilyVerifiedBy")
-  createdFamilyMembers    FamilyMember[]     @relation("FamilyMemberCreatedBy")
-  assessments             FamilyAssessment[] @relation("FamilyAssessedBy")
-  reviewedFamilyRequests  FamilyRequest[]    @relation("FamilyRequestReviewedBy")
+  createdFamilies        Family[]           @relation("FamilyCreatedBy")
+  verifiedFamilies       Family[]           @relation("FamilyVerifiedBy")
+  createdFamilyMembers   FamilyMember[]     @relation("FamilyMemberCreatedBy")
+  assessments            FamilyAssessment[] @relation("FamilyAssessedBy")
+  reviewedFamilyRequests FamilyRequest[]    @relation("FamilyRequestReviewedBy")
   // Inventory and parcel relations
-  createdInventories      Inventory[]
-  createdParcelTemplates  ParcelTemplate[]
+  createdInventories     Inventory[]
+  createdParcelTemplates ParcelTemplate[]
+  createdProjects        Project[]          @relation("ProjectCreatedBy")
+  distributions          Distribution[]
 
   @@index([role])
   @@index([branchId])
@@ -208,22 +218,22 @@ model Address {
 }
 
 model Family {
-  id                BigInt       @id @default(autoincrement())
-  publicId          String        @unique @map("public_id") @db.VarChar(20)
-  branchId          BigInt       @map("branch_id")
-  passwordHash      String       @map("password_hash")
-  refreshToken      String?       @unique @map("refresh_token")
+  id                 BigInt       @id @default(autoincrement())
+  publicId           String       @unique @map("public_id") @db.VarChar(20)
+  branchId           BigInt       @map("branch_id")
+  passwordHash       String       @map("password_hash")
+  refreshToken       String?      @unique @map("refresh_token")
   mustChangePassword Boolean      @default(false) @map("must_change_password")
-  primaryPhone      String       @unique @map("primary_phone") @db.VarChar(30)
-  emergencyPhone    String?      @map("emergency_phone") @db.VarChar(30)
-  originalAddressId BigInt       @map("original_address_id")
-  currentAddressId  BigInt       @map("current_address_id")
-  status            FamilyStatus @default(PENDING)
-  createdById       BigInt       @map("created_by")
-  verifiedById      BigInt?      @map("verified_by")
-  verifiedAt        DateTime?    @map("verified_at")
-  createdAt         DateTime     @default(now()) @map("created_at")
-  deletedAt         DateTime?     @map("deleted_at")
+  primaryPhone       String       @unique @map("primary_phone") @db.VarChar(30)
+  emergencyPhone     String?      @map("emergency_phone") @db.VarChar(30)
+  originalAddressId  BigInt       @map("original_address_id")
+  currentAddressId   BigInt       @map("current_address_id")
+  status             FamilyStatus @default(PENDING)
+  createdById        BigInt       @map("created_by")
+  verifiedById       BigInt?      @map("verified_by")
+  verifiedAt         DateTime?    @map("verified_at")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  deletedAt          DateTime?    @map("deleted_at")
 
   branch          Branch  @relation(fields: [branchId], references: [id])
   originalAddress Address @relation("OriginalAddress", fields: [originalAddressId], references: [id])
@@ -231,9 +241,10 @@ model Family {
   createdBy       User    @relation("FamilyCreatedBy", fields: [createdById], references: [id])
   verifiedBy      User?   @relation("FamilyVerifiedBy", fields: [verifiedById], references: [id])
 
-  members    FamilyMember[]
-  assessment FamilyAssessment?
-  requests   FamilyRequest[]
+  members       FamilyMember[]
+  assessment    FamilyAssessment?
+  requests      FamilyRequest[]
+  distributions Distribution[]
 
   @@index([status])
   @@index([createdById])
@@ -356,13 +367,28 @@ model Inventory {
   updatedAt   DateTime @updatedAt @map("updated_at")
   createdById BigInt   @map("created_by_id")
 
-  branch         Branch          @relation(fields: [branchId], references: [id])
-  createdBy      User            @relation(fields: [createdById], references: [id])
-  inventoryItems InventoryItem[]
+  branch           Branch            @relation(fields: [branchId], references: [id])
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  inventoryItems   InventoryItem[]
+  inventoryParcels InventoryParcel[]
 
   @@unique([branchId, name])
   @@index([createdById])
   @@map("inventories")
+}
+
+model InventoryParcel {
+  inventoryId      BigInt   @map("inventory_id")
+  parcelTemplateId BigInt   @map("parcel_template_id")
+  quantity         Int      @default(0)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  inventory      Inventory      @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
+  parcelTemplate ParcelTemplate @relation(fields: [parcelTemplateId], references: [id], onDelete: Restrict)
+
+  @@id([inventoryId, parcelTemplateId])
+  @@index([parcelTemplateId])
+  @@map("inventory_parcels")
 }
 
 model InventoryItem {
@@ -388,8 +414,11 @@ model ParcelTemplate {
   status      ParcelTemplateStatus @default(DRAFT)
   createdById BigInt               @map("created_by_id")
 
-  createdBy   User         @relation(fields: [createdById], references: [id])
-  parcelItems ParcelItem[]
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  inventoryParcels InventoryParcel[]
+  parcelItems      ParcelItem[]
+  projectParcels   ProjectParcel[]
+  distributions    Distribution[]
 
   @@index([createdById])
   @@map("parcel_templates")
@@ -405,4 +434,60 @@ model ParcelItem {
 
   @@id([parcelTemplateId, itemId])
   @@map("parcel_items")
+}
+
+model Project {
+  id          BigInt        @id @default(autoincrement())
+  name        String        @db.VarChar(200)
+  description String?       @db.Text
+  startDate   DateTime      @map("start_date") @db.Date
+  endDate     DateTime?     @map("end_date") @db.Date
+  status      ProjectStatus @default(DRAFT)
+  createdById BigInt        @map("created_by")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  createdBy      User            @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  projectParcels ProjectParcel[]
+  distributions  Distribution[]
+
+  @@index([createdById])
+  @@map("projects")
+}
+
+model ProjectParcel {
+  projectId         BigInt @map("project_id")
+  parcelTemplateId  BigInt @map("parcel_template_id")
+  targetQuantity    Int    @map("target_quantity")
+  availableQuantity Int    @map("available_quantity")
+
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parcelTemplate ParcelTemplate @relation(fields: [parcelTemplateId], references: [id], onDelete: Restrict)
+
+  @@id([projectId, parcelTemplateId])
+  @@index([parcelTemplateId])
+  @@map("project_parcels")
+}
+
+model Distribution {
+  id               BigInt   @id @default(autoincrement())
+  familyId         BigInt   @map("family_id")
+  branchId         BigInt   @map("branch_id")
+  projectId        BigInt   @map("project_id")
+  parcelTemplateId BigInt   @map("parcel_template_id")
+  distributedById  BigInt   @map("distributed_by")
+  distributedAt    DateTime @default(now()) @map("distributed_at")
+  notes            String?  @db.Text
+
+  family         Family         @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  branch         Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  parcelTemplate ParcelTemplate @relation(fields: [parcelTemplateId], references: [id], onDelete: Restrict)
+  distributedBy  User           @relation(fields: [distributedById], references: [id], onDelete: Restrict)
+
+  @@unique([familyId, projectId])
+  @@index([projectId])
+  @@index([branchId])
+  @@index([parcelTemplateId])
+  @@index([distributedById])
+  @@map("distributions")
 }

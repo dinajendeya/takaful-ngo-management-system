@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { FamilyRequestStatus, UserRole } from "../../../generated/prisma/enums.js";
+import { UserRole } from "../../../generated/prisma/enums.js";
 import { authenticate } from "../../../common/middlewares/authenticate.middleware.js";
 import { requireFamilyPasswordChanged } from "../middlewares/family-password.middleware.js";
 import { authorize, authorizePrincipal } from "../../../common/middlewares/authorize.middleware.js";

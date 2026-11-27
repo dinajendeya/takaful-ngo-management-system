@@ -1,0 +1,95 @@
+$kind: http-request
+name: Get Pending Family Requests
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/family-requests/pending?page=1&pageSize=20'
+description: |-
+  ## Get Pending Family Requests
+
+  Retrieves a paginated list of all family update requests that are currently in `PENDING` status, awaiting review by an admin or branch manager. This is the staff-facing review queue.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Staff Only** — Restricted to users with the `ADMIN` or `BRANCH_MANAGER` role. Family tokens are not accepted.
+
+  ### Query Parameters
+  | Parameter     | Type    | Required | Default     | Description |
+  |---------------|---------|----------|-------------|-------------|
+  | page          | integer | ❌ No    | `1`         | Page number for pagination |
+  | pageSize      | integer | ❌ No    | `20`        | Number of results per page |
+  | search        | string  | ❌ No    | —           | Search by request title or family public ID |
+  | sortBy        | string  | ❌ No    | `createdAt` | Field to sort results by |
+  | sortDirection | string  | ❌ No    | `desc`      | Sort order: `asc` or `desc` |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "publicId": "REQ-000001",
+        "title": "Update current address after displacement",
+        "status": "PENDING",
+        "familyPublicId": "FAM-000001",
+        "justification": "We have moved to a new location.",
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 1,
+      "totalPages": 1
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user is not an admin or branch manager
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+queryParams:
+  - key: page
+    value: '1'
+    description: Page number (default 1)
+  - key: pageSize
+    value: '20'
+    description: Number of requests per page (default 20)
+  - key: search
+    value: ''
+    description: Search by title or family public ID
+    disabled: true
+  - key: sortBy
+    value: createdAt
+    description: 'Field to sort by (e.g. createdAt, title)'
+    disabled: true
+  - key: sortDirection
+    value: desc
+    description: 'Sort direction: asc or desc'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Data is an array", () => {
+          pm.expect(pm.response.json().data).to.be.an("array");
+      });
+      pm.test("All requests are PENDING", () => {
+          pm.response.json().data.forEach(req => {
+              pm.expect(req.status).to.eql("PENDING");
+          });
+      });

@@ -1,0 +1,80 @@
+$kind: http-request
+name: Reject Family Request
+order: 7000
+method: PATCH
+url: '{{baseUrl}}/api/family-requests/{{familyRequestPublicId}}/reject'
+description: |-
+  ## Reject Family Request
+
+  Rejects a pending family update request. A rejection reason is required. The proposed changes are discarded and the family record remains unchanged. Only requests in `PENDING` status can be rejected.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Staff Only** — Restricted to users with the `ADMIN` or `BRANCH_MANAGER` role. Family tokens are not accepted.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | id        | string | ✅ Yes   | The request's public ID (e.g. `REQ-000001`). Stored in the `familyRequestPublicId` environment variable. |
+
+  ### Request Body Fields
+  | Field           | Type   | Required | Description |
+  |-----------------|--------|----------|-------------|
+  | rejectionReason | string | ✅ Yes   | Reason for rejecting the request (5–1000 characters) |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "REQ-000001",
+      "status": "REJECTED",
+      "rejectionReason": "The proposed address could not be verified during field visit.",
+      "updatedAt": "2024-01-02T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing or too-short rejection reason)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user is not an admin or branch manager
+  - `404 Not Found` — No request found with the given public ID
+  - `409 Conflict` — Request is not in `PENDING` status
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{familyRequestPublicId}}'
+    description: 'The public ID of the family request to reject (e.g. REQ-000001)'
+body:
+  type: json
+  content: |-
+    {
+      "rejectionReason": "The proposed address could not be verified during the field visit. Please resubmit with accurate information."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Request status is REJECTED", () => {
+          pm.expect(pm.response.json().data.status).to.eql("REJECTED");
+      });
+      pm.test("Rejection reason is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("rejectionReason");
+      });

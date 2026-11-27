@@ -1,0 +1,70 @@
+$kind: http-request
+name: Get Item by ID
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/items/{{catalogItemId}}'
+description: |-
+  ## Get Item by ID
+
+  Retrieves the full details of a single catalog item using its numeric ID. Accessible to all authenticated users.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  ### Path Parameters
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | ✅ Yes   | The item's numeric ID (e.g. `1`). Automatically stored in the `catalogItemId` environment variable after creating an item. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": 1,
+      "categoryId": 1,
+      "name": "Rice Bag",
+      "unit": "BAG",
+      "description": "5kg white rice bag suitable for a family of four for one week.",
+      "deletedAt": null,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — `id` is not a valid numeric value
+  - `401 Unauthorized` — Missing or invalid access token
+  - `404 Not Found` — No item found with the given ID
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{catalogItemId}}'
+    description: 'The numeric ID of the catalog item (e.g. 1)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Item id matches", () => {
+          pm.expect(String(pm.response.json().data.id)).to.eql(pm.environment.get("catalogItemId"));
+      });
+      pm.test("Item has unit", () => {
+          pm.expect(pm.response.json().data).to.have.property("unit");
+      });
+      pm.test("Item has categoryId", () => {
+          pm.expect(pm.response.json().data).to.have.property("categoryId");
+      });

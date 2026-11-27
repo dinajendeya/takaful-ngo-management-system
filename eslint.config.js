@@ -1,7 +1,10 @@
-const tseslint = require("@typescript-eslint/eslint-plugin");
-const tsParser = require("@typescript-eslint/parser");
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsParser from "@typescript-eslint/parser";
 
-module.exports = [
+export default [
+  {
+    ignores: ["src/generated/**"],
+  },
   {
     files: ["**/*.ts"],
     languageOptions: {
@@ -19,6 +22,7 @@ module.exports = [
         "error",
         {
           argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
         },
       ],
     },

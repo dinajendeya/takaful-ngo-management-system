@@ -6,7 +6,8 @@ node_modules
 
 ./docs/archeticture.md
 ./docs/database
-/src/generated/prisma
+./src/generated/prisma
 
 dist
 docs/learning-journey
+./project

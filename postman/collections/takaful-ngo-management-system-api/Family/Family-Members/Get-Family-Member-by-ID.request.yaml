@@ -1,0 +1,84 @@
+$kind: http-request
+name: Get Family Member by ID
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/families/{{familyPublicId}}/members/{{familyMemberPublicId}}'
+description: |-
+  ## Get Family Member by ID
+
+  Retrieves the full details of a single family member using the family's public ID and the member's public ID.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | familyId  | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable. |
+  | memberId  | string | ✅ Yes   | The member's public ID (e.g. `MBR-000001`). Stored in the `familyMemberPublicId` environment variable. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "MBR-000001",
+      "nationalId": "123456789",
+      "fullName": "Ahmed Mohammed Al-Masri",
+      "gender": "MALE",
+      "birthDate": "1985-06-15",
+      "relationship": "HEAD",
+      "phone": "0599000001",
+      "educationLevel": "BACHELOR",
+      "educationMajor": "Civil Engineering",
+      "employmentStatus": "UNEMPLOYED",
+      "monthlyIncome": 0,
+      "hasDisability": false,
+      "hasChronicDisease": true,
+      "diseaseName": "Diabetes",
+      "maritalStatus": "MARRIED",
+      "isOrphan": false,
+      "isBasedInGaza": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No family or member found with the given IDs
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: familyId
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family (e.g. FAM-000001)'
+  - key: memberId
+    value: '{{familyMemberPublicId}}'
+    description: 'The public ID of the family member (e.g. MBR-000001)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Member publicId matches", () => {
+          pm.expect(pm.response.json().data.publicId).to.eql(pm.environment.get("familyMemberPublicId"));
+      });
+      pm.test("Member has relationship field", () => {
+          pm.expect(pm.response.json().data).to.have.property("relationship");
+      });

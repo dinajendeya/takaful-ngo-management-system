@@ -1,0 +1,77 @@
+$kind: http-request
+name: Get Family Request by ID
+order: 4000
+method: GET
+url: '{{baseUrl}}/api/family-requests/{{familyRequestPublicId}}'
+description: |-
+  ## Get Family Request by ID
+
+  Retrieves the full details of a single family update request by its public ID, including all proposed changes (family data, assessment, member additions/updates/deletions).
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used (when accessed by a family principal).
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | id        | string | ✅ Yes   | The request's public ID (e.g. `REQ-000001`). Stored in the `familyRequestPublicId` environment variable. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "REQ-000001",
+      "title": "Update current address after displacement",
+      "status": "PENDING",
+      "justification": "We have moved to a new location in Deir Al-Balah.",
+      "familyPublicId": "FAM-000001",
+      "proposedChanges": {
+        "family": { "currentAddress": { "governorate": "DEIR_AL_BALAH" } },
+        "assessment": { "housingType": "TENT" },
+        "membersToCreate": [],
+        "membersToUpdate": [],
+        "membersToDelete": []
+      },
+      "reviewNotes": null,
+      "rejectionReason": null,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No request found with the given public ID
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{familyRequestPublicId}}'
+    description: 'The public ID of the family request (e.g. REQ-000001)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Request publicId matches", () => {
+          pm.expect(pm.response.json().data.publicId).to.eql(pm.environment.get("familyRequestPublicId"));
+      });
+      pm.test("Request has status", () => {
+          pm.expect(pm.response.json().data).to.have.property("status");
+      });

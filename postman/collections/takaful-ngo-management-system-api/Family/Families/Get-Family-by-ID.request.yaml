@@ -1,0 +1,83 @@
+$kind: http-request
+name: Get Family by ID
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/families/{{familyPublicId}}'
+description: |-
+  ## Get Family by ID
+
+  Retrieves the full details of a single family using its unique public identifier, including address information and current status.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — If the family's password has not been changed from the initial one, this endpoint will return `403 Forbidden` with a prompt to change the password first.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | id        | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable after creating a family. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "FAM-000001",
+      "primaryPhone": "0599000001",
+      "emergencyPhone": "0599000002",
+      "status": "VERIFIED",
+      "branchId": "BRN-000001",
+      "isPasswordChanged": true,
+      "originalAddress": {
+        "governorate": "GAZA",
+        "city": "Gaza City",
+        "neighborhood": "Al-Rimal",
+        "street": "Omar Al-Mukhtar Street"
+      },
+      "currentAddress": {
+        "governorate": "KHAN_YOUNIS",
+        "city": "Khan Younis",
+        "neighborhood": "Al-Amal"
+      },
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No family found with the given public ID
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family (e.g. FAM-000001)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Family publicId matches", () => {
+          pm.expect(pm.response.json().data.publicId).to.eql(pm.environment.get("familyPublicId"));
+      });
+      pm.test("Family has status", () => {
+          pm.expect(pm.response.json().data).to.have.property("status");
+      });
+      pm.test("Family has currentAddress", () => {
+          pm.expect(pm.response.json().data).to.have.property("currentAddress");
+      });
