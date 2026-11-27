@@ -102,7 +102,7 @@ const approveUpdateRequest = async (request: FamilyRequestRecord, reviewer: NonN
   }
 
   const { originalAddress, currentAddress, ...fields } = changes.family ?? {};
-  return familyRequestRepository.approveFamilyRequest(request.id, {
+  const result = await familyRequestRepository.approveFamilyRequest(request.id, {
     familyId: updateFamilyId,
     reviewerId: reviewer.id,
     family: {
@@ -118,6 +118,12 @@ const approveUpdateRequest = async (request: FamilyRequestRecord, reviewer: NonN
       delete: changes.membersToDelete,
     },
   });
+  if ("error" in result) {
+    if (result.error === "family_not_found") throw new Error("Family no longer exists");
+    if (result.error === "member_not_found") throw new Error("Family member not found in this family");
+    throw new Error("Request is no longer pending");
+  }
+  return result.request;
 };
 
 export const approveRequest = async (requestId: string, reviewerId: string) => {
