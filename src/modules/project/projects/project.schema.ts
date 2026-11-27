@@ -21,6 +21,6 @@ export const updateProjectSchema = z.object({
   description: z.string().max(5000).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
-  status: z.nativeEnum(ProjectStatus).optional(),
+  status: z.enum(ProjectStatus).optional(),
   parcels: z.array(projectParcelSchema).optional(),
 });
