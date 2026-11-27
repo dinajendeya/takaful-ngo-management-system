@@ -1,0 +1,95 @@
+$kind: http-request
+name: Get My Family Requests
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/family-requests/my?page=1&pageSize=20'
+description: |-
+  ## Get My Family Requests
+
+  Retrieves a paginated list of all update requests submitted by the currently authenticated family. Only the family's own requests are returned.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header obtained from the **Family Login** endpoint.
+
+  > 🔒 **Family Principal Only** — Only tokens issued to a family (via `/family-auth/login`) are accepted.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  ### Query Parameters
+  | Parameter     | Type    | Required | Default     | Description |
+  |---------------|---------|----------|-------------|-------------|
+  | page          | integer | ❌ No    | `1`         | Page number for pagination |
+  | pageSize      | integer | ❌ No    | `20`        | Number of results per page |
+  | search        | string  | ❌ No    | —           | Search by request title (partial match) |
+  | sortBy        | string  | ❌ No    | `createdAt` | Field to sort results by |
+  | sortDirection | string  | ❌ No    | `desc`      | Sort order: `asc` or `desc` |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "publicId": "REQ-000001",
+        "title": "Update current address after displacement",
+        "status": "PENDING",
+        "justification": "We have moved to a new location.",
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 1,
+      "totalPages": 1
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Token does not belong to a family principal, or password not yet changed
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+queryParams:
+  - key: page
+    value: '1'
+    description: Page number (default 1)
+  - key: pageSize
+    value: '20'
+    description: Number of requests per page (default 20)
+  - key: search
+    value: ''
+    description: Search by request title (partial match)
+    disabled: true
+  - key: sortBy
+    value: createdAt
+    description: 'Field to sort by (e.g. createdAt, title)'
+    disabled: true
+  - key: sortDirection
+    value: desc
+    description: 'Sort direction: asc or desc'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Data is an array", () => {
+          pm.expect(pm.response.json().data).to.be.an("array");
+      });
+      pm.test("Meta pagination is present", () => {
+          pm.expect(pm.response.json()).to.have.property("meta");
+      });

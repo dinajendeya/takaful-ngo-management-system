@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { Item, Prisma } from "../../../generated/prisma/client.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type { createItemSchema, updateItemSchema, listItemsQuerySchema } from "./item.schema.js";
 
 export type CreateItemDto = z.infer<typeof createItemSchema>;

@@ -1,0 +1,130 @@
+$kind: http-request
+name: Create Family Member
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/families/{{familyPublicId}}/members'
+description: |-
+  ## Create Family Member
+
+  Adds a new member to an existing family. Each member represents an individual living within the family unit. Detailed personal, health, education, and employment information can be recorded.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | familyId  | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable. |
+
+  ### Request Body Fields
+  | Field            | Type    | Required | Default      | Description |
+  |------------------|---------|----------|--------------|-------------|
+  | nationalId       | string  | ✅ Yes   | —            | 9-digit national ID number |
+  | fullName         | string  | ✅ Yes   | —            | Full name (3–200 characters) |
+  | gender           | enum    | ✅ Yes   | —            | `MALE` or `FEMALE` |
+  | birthDate        | date    | ✅ Yes   | —            | ISO 8601 date, cannot be in the future |
+  | relationship     | enum    | ✅ Yes   | —            | `HEAD`, `SPOUSE`, `SON`, `DAUGHTER`, `FATHER`, `MOTHER`, `BROTHER`, `SISTER`, `GRANDFATHER`, `GRANDMOTHER`, `OTHER` |
+  | phone            | string  | ❌ No    | —            | Phone number — format: `05XXXXXXXX` |
+  | educationLevel   | enum    | ❌ No    | —            | `NONE`, `KINDERGARTEN`, `PRIMARY`, `PREPARATORY`, `SECONDARY`, `DIPLOMA`, `BACHELOR`, `MASTER`, `PHD` |
+  | educationMajor   | string  | ❌ No    | —            | Required if educationLevel is `DIPLOMA`, `BACHELOR`, `MASTER`, or `PHD` |
+  | educationFees    | number  | ❌ No    | —            | Monthly education fees (≥ 0) |
+  | employmentStatus | enum    | ❌ No    | `UNEMPLOYED` | `EMPLOYED`, `UNEMPLOYED`, `SELF_EMPLOYED`, `STUDENT`, `RETIRED`, `FREELANCER`, `OTHER` |
+  | monthlyIncome    | number  | ❌ No    | `0`          | Monthly income in currency (≥ 0) |
+  | hasDisability    | boolean | ❌ No    | `false`      | Whether the member has a disability |
+  | disabilityType   | string  | ❌ No    | —            | Required if `hasDisability` is `true` (max 150 chars) |
+  | hasChronicDisease| boolean | ❌ No    | `false`      | Whether the member has a chronic disease |
+  | diseaseName      | string  | ❌ No    | —            | Required if `hasChronicDisease` is `true` (max 150 chars) |
+  | maritalStatus    | enum    | ❌ No    | `SINGLE`     | `SINGLE`, `MARRIED`, `DIVORCED`, `WIDOWED` |
+  | isOrphan         | boolean | ❌ No    | `false`      | Whether the member is an orphan |
+  | isBasedInGaza    | boolean | ❌ No    | `true`       | Whether the member is currently based in Gaza |
+
+  ### Success Response `201 Created`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "MBR-000001",
+      "nationalId": "123456789",
+      "fullName": "Ahmed Mohammed Al-Masri",
+      "gender": "MALE",
+      "birthDate": "1985-06-15",
+      "relationship": "HEAD",
+      "employmentStatus": "UNEMPLOYED",
+      "monthlyIncome": 0,
+      "hasDisability": false,
+      "hasChronicDisease": false,
+      "maritalStatus": "MARRIED",
+      "isOrphan": false,
+      "isBasedInGaza": true,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (e.g. missing required fields, disabilityType required but missing)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No family found with the given familyId
+  - `409 Conflict` — A member with the same national ID already exists in this family
+
+  ### Post-request Script
+  On success, the `familyMemberPublicId` environment variable is automatically set.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: familyId
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family (e.g. FAM-000001)'
+body:
+  type: json
+  content: |-
+    {
+      "nationalId": "123456789",
+      "fullName": "Ahmed Mohammed Al-Masri",
+      "gender": "MALE",
+      "birthDate": "1985-06-15",
+      "relationship": "HEAD",
+      "phone": "0599000001",
+      "educationLevel": "BACHELOR",
+      "educationMajor": "Civil Engineering",
+      "employmentStatus": "UNEMPLOYED",
+      "monthlyIncome": 0,
+      "hasDisability": false,
+      "hasChronicDisease": true,
+      "diseaseName": "Diabetes",
+      "maritalStatus": "MARRIED",
+      "isOrphan": false,
+      "isBasedInGaza": true
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Member publicId is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("publicId");
+      });
+      pm.test("Member fullName matches", () => {
+          pm.expect(pm.response.json().data.fullName).to.eql("Ahmed Mohammed Al-Masri");
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.publicId) {
+          pm.environment.set("familyMemberPublicId", data.publicId);
+      }

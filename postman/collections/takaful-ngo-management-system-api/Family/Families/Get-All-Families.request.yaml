@@ -1,0 +1,106 @@
+$kind: http-request
+name: Get All Families
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/families?page=1&pageSize=20'
+description: |-
+  ## Get All Families
+
+  Retrieves a paginated list of all families registered in the system. Supports filtering by status, branch, and primary phone number.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  ### Query Parameters
+  | Parameter     | Type    | Required | Default     | Description |
+  |---------------|---------|----------|-------------|-------------|
+  | page          | integer | ❌ No    | `1`         | Page number for pagination |
+  | pageSize      | integer | ❌ No    | `20`        | Number of results per page |
+  | search        | string  | ❌ No    | —           | Search by family public ID or phone (partial match) |
+  | sortBy        | string  | ❌ No    | `createdAt` | Field to sort results by |
+  | sortDirection | string  | ❌ No    | `desc`      | Sort order: `asc` or `desc` |
+  | status        | enum    | ❌ No    | —           | Filter by status: `PENDING`, `VERIFIED`, `REJECTED` |
+  | branchId      | string  | ❌ No    | —           | Filter by branch public ID (e.g. `BRN-000001`) |
+  | primaryPhone  | string  | ❌ No    | —           | Filter by exact primary phone number |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "publicId": "FAM-000001",
+        "primaryPhone": "0599000001",
+        "status": "VERIFIED",
+        "branchId": "BRN-000001",
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 1,
+      "totalPages": 1
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+queryParams:
+  - key: page
+    value: '1'
+    description: Page number (default 1)
+  - key: pageSize
+    value: '20'
+    description: Number of families per page (default 20)
+  - key: search
+    value: ''
+    description: Search by publicId or phone (partial match)
+    disabled: true
+  - key: sortBy
+    value: createdAt
+    description: 'Field to sort by (e.g. createdAt, primaryPhone)'
+    disabled: true
+  - key: sortDirection
+    value: desc
+    description: 'Sort direction: asc or desc'
+    disabled: true
+  - key: status
+    value: PENDING
+    description: 'Filter by status: PENDING, VERIFIED, REJECTED'
+    disabled: true
+  - key: branchId
+    value: '{{branchPublicId}}'
+    description: Filter by branch public ID
+    disabled: true
+  - key: primaryPhone
+    value: ''
+    description: Filter by exact primary phone number
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Data is an array", () => {
+          pm.expect(pm.response.json().data).to.be.an("array");
+      });
+      pm.test("Meta pagination is present", () => {
+          pm.expect(pm.response.json()).to.have.property("meta");
+      });

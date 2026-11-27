@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ParcelTemplateStatus, Unit } from "../../../generated/prisma/enums.js";
+import { ParcelTemplateStatus } from "../../../generated/prisma/enums.js";
 
 const idString = z.string().regex(/^\d+$/, "Invalid id");
 

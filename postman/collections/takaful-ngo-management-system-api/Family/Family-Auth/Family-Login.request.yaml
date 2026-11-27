@@ -1,0 +1,71 @@
+$kind: http-request
+name: Family Login
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/family-auth/login'
+description: |-
+  ## Family Login
+
+  Authenticates a registered family using their public ID and password. Returns a JWT access token and refresh token for subsequent authenticated requests.
+
+  > ⚠️ This is a **family-specific** login endpoint — it is separate from the staff/admin login. Families receive their `publicId` and initial password upon registration by an employee.
+
+  ### Request Body Fields
+  | Field     | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | publicId  | string | ✅ Yes   | The family's unique public identifier (e.g. `FAM-000001`) |
+  | password  | string | ✅ Yes   | The family's current password |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "accessToken": "<jwt_access_token>",
+      "refreshToken": "<jwt_refresh_token>"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing or empty fields)
+  - `401 Unauthorized` — Invalid publicId or password
+
+  ### Post-request Script
+  On success, the `accessToken` and `refreshToken` environment variables are automatically set for use in subsequent requests.
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "publicId": "FAM-000001",
+      "password": "Family@1234"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Access token is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("accessToken");
+      });
+      pm.test("Refresh token is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("refreshToken");
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.accessToken) {
+          pm.environment.set("accessToken", data.accessToken);
+      }
+      if (data && data.refreshToken) {
+          pm.environment.set("refreshToken", data.refreshToken);
+      }

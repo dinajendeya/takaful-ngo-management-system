@@ -1,0 +1,63 @@
+$kind: http-request
+name: Delete Family
+order: 7000
+method: DELETE
+url: '{{baseUrl}}/api/families/{{familyPublicId}}'
+description: |-
+  ## Delete Family
+
+  Permanently removes a family record from the system. This is a destructive operation and should be used with caution. Only administrators are authorized to delete families.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  > ⚠️ **Destructive Action** — This permanently deletes the family and all associated data (members, assessments, requests). This action cannot be undone.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | id        | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "message": "Family deleted successfully"
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks admin privileges, or family password not yet changed
+  - `404 Not Found` — No family found with the given public ID
+
+  ### Post-request Script
+  On success, the `familyPublicId` environment variable is cleared.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family to delete (e.g. FAM-000001)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+
+      if (pm.response.code === 200) {
+          pm.environment.unset("familyPublicId");
+      }

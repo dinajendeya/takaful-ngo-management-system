@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GazaGovernorate, HousingType, FamilyStatus } from "../../../generated/prisma/enums.js";
+import { GazaGovernorate, HousingType } from "../../../generated/prisma/enums.js";
 import { idSchema, phoneSchema, passwordSchema } from "../../../common/schemas/common.schema.js";
 
 const addressSchema = z.object({

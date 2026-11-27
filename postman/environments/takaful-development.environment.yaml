@@ -24,6 +24,10 @@ values:
     value: DST-000001
   - key: inventoryPublicId
     value: INV-000001
+  - key: categoryId
+    value: '1'
+  - key: catalogItemId
+    value: '1'
   - key: itemPublicId
     value: ITM-000001
   - key: donorPublicId

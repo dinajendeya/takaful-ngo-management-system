@@ -1,0 +1,108 @@
+$kind: http-request
+name: Get All Family Members
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/families/{{familyPublicId}}/members?page=1&pageSize=20'
+description: |-
+  ## Get All Family Members
+
+  Retrieves a paginated list of all members belonging to a specific family.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | familyId  | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable. |
+
+  ### Query Parameters
+  | Parameter     | Type    | Required | Default     | Description |
+  |---------------|---------|----------|-------------|-------------|
+  | page          | integer | ❌ No    | `1`         | Page number for pagination |
+  | pageSize      | integer | ❌ No    | `20`        | Number of results per page |
+  | search        | string  | ❌ No    | —           | Search by member name or national ID |
+  | sortBy        | string  | ❌ No    | `createdAt` | Field to sort results by |
+  | sortDirection | string  | ❌ No    | `desc`      | Sort order: `asc` or `desc` |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "publicId": "MBR-000001",
+        "nationalId": "123456789",
+        "fullName": "Ahmed Mohammed Al-Masri",
+        "gender": "MALE",
+        "birthDate": "1985-06-15",
+        "relationship": "HEAD",
+        "employmentStatus": "UNEMPLOYED",
+        "monthlyIncome": 0,
+        "maritalStatus": "MARRIED",
+        "isOrphan": false,
+        "isBasedInGaza": true
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 1,
+      "totalPages": 1
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No family found with the given familyId
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: familyId
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family (e.g. FAM-000001)'
+queryParams:
+  - key: page
+    value: '1'
+    description: Page number (default 1)
+  - key: pageSize
+    value: '20'
+    description: Number of members per page (default 20)
+  - key: search
+    value: ''
+    description: Search by member name or national ID
+    disabled: true
+  - key: sortBy
+    value: createdAt
+    description: 'Field to sort by (e.g. createdAt, fullName)'
+    disabled: true
+  - key: sortDirection
+    value: desc
+    description: 'Sort direction: asc or desc'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Data is an array", () => {
+          pm.expect(pm.response.json().data).to.be.an("array");
+      });
+      pm.test("Meta pagination is present", () => {
+          pm.expect(pm.response.json()).to.have.property("meta");
+      });

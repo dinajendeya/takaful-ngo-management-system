@@ -1,0 +1,91 @@
+$kind: http-request
+name: Update Family Assessment
+order: 3000
+method: PATCH
+url: '{{baseUrl}}/api/families/{{familyPublicId}}/assessment'
+description: |-
+  ## Update Family Assessment
+
+  Partially updates the existing socio-economic assessment for a family. All fields are optional — only the fields provided will be updated. The assessment must already exist (use POST to create it first).
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | familyId  | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable. |
+
+  ### Request Body Fields (all optional)
+  | Field                | Type    | Description |
+  |----------------------|---------|-------------|
+  | monthlyFamilyIncome  | number  | Total monthly family income in currency (≥ 0) |
+  | rentCost             | number  | Monthly rent cost (≥ 0, or `null` if not applicable) |
+  | housingType          | enum    | `OWNER`, `RENT`, `HOSTING`, `TENT`, `FULL_HOUSE`, `PARTIALLY_DESTROYED`, `TOTALLY_DESTROYED` |
+  | isDisplaced          | boolean | Whether the family has been displaced from their original home |
+  | isRegisteredInCamp   | boolean | Whether the family is registered in a displacement camp |
+  | hasElectricity       | boolean | Whether the family has access to electricity |
+  | hasInternet          | boolean | Whether the family has access to internet |
+  | notes                | string  | Additional notes about the family's situation (max 1000 characters) |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": 1,
+      "monthlyFamilyIncome": 500,
+      "housingType": "RENT",
+      "isDisplaced": true,
+      "hasElectricity": true,
+      "hasInternet": false,
+      "updatedAt": "2024-01-02T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (invalid field values)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No family found with the given familyId, or no assessment exists yet
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: familyId
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family (e.g. FAM-000001)'
+body:
+  type: json
+  content: |-
+    {
+      "monthlyFamilyIncome": 500,
+      "housingType": "RENT",
+      "rentCost": 200,
+      "hasElectricity": true,
+      "hasInternet": false,
+      "notes": "Family found temporary rental accommodation in Khan Younis."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Assessment data is present", () => {
+          pm.expect(pm.response.json()).to.have.property("data");
+      });

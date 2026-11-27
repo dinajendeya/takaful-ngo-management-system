@@ -9,6 +9,9 @@ import familyRoutes from "./modules/family/routes/family.index.route.js";
 import categoryRoutes from "./modules/catalog/categories/category.routes.js";
 import itemRoutes from "./modules/catalog/items/item.routes.js";
 import templateRoutes from "./modules/parcel/templates/template.routes.js"
+import inventoryRoutes from "./modules/inventory/inventories/inventory.routes.js"
+import projectRoutes from "./modules/project/projects/project.routes.js";
+import distributionRoutes from "./modules/project/distributions/distribution.routes.js";
 
 const app = express();
 
@@ -22,7 +25,10 @@ app.use("/api", familyRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/items", itemRoutes);
-app.use("/api/templates", templateRoutes)
+app.use("/api/templates", templateRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/distributions", distributionRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({

@@ -1,0 +1,67 @@
+$kind: http-request
+name: Delete Family Member
+order: 5000
+method: DELETE
+url: '{{baseUrl}}/api/families/{{familyPublicId}}/members/{{familyMemberPublicId}}'
+description: |-
+  ## Delete Family Member
+
+  Permanently removes a member from a family. This action cannot be undone.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  > ⚠️ **Destructive Action** — This permanently deletes the member record. This action cannot be undone.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | familyId  | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable. |
+  | memberId  | string | ✅ Yes   | The member's public ID (e.g. `MBR-000001`). Stored in the `familyMemberPublicId` environment variable. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "message": "Family member deleted successfully"
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No family or member found with the given IDs
+
+  ### Post-request Script
+  On success, the `familyMemberPublicId` environment variable is cleared.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: familyId
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family (e.g. FAM-000001)'
+  - key: memberId
+    value: '{{familyMemberPublicId}}'
+    description: 'The public ID of the family member to delete (e.g. MBR-000001)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+
+      if (pm.response.code === 200) {
+          pm.environment.unset("familyMemberPublicId");
+      }

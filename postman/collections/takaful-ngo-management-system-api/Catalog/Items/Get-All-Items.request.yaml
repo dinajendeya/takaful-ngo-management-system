@@ -1,0 +1,91 @@
+$kind: http-request
+name: Get All Items
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/items?page=1&limit=20'
+description: |-
+  ## Get All Items
+
+  Retrieves a paginated list of catalog items. Supports filtering by category, keyword search, and optionally including soft-deleted items. Accessible to all authenticated users.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  ### Query Parameters
+  | Parameter      | Type    | Required | Default | Description |
+  |----------------|---------|----------|---------|-------------|
+  | page           | integer | ❌ No    | `1`     | Page number for pagination |
+  | limit          | integer | ❌ No    | `20`    | Number of results per page (max 100) |
+  | categoryId     | string  | ❌ No    | —       | Filter by category numeric ID (e.g. `1`) |
+  | search         | string  | ❌ No    | —       | Search items by name (partial match, 1–150 characters) |
+  | includeDeleted | boolean | ❌ No    | `false` | Set to `true` to include soft-deleted items in results |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "categoryId": 1,
+        "name": "Rice Bag",
+        "unit": "BAG",
+        "description": "5kg white rice bag.",
+        "deletedAt": null,
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "limit": 20,
+      "total": 1
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+queryParams:
+  - key: page
+    value: '1'
+    description: Page number (default 1)
+  - key: limit
+    value: '20'
+    description: Items per page (default 20, max 100)
+  - key: categoryId
+    value: '{{categoryId}}'
+    description: Filter by category numeric ID
+    disabled: true
+  - key: search
+    value: ''
+    description: Search items by name (partial match)
+    disabled: true
+  - key: includeDeleted
+    value: 'false'
+    description: Include soft-deleted items (true/false)
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Data is an array", () => {
+          pm.expect(pm.response.json().data).to.be.an("array");
+      });
+      pm.test("Meta pagination is present", () => {
+          pm.expect(pm.response.json()).to.have.property("meta");
+      });

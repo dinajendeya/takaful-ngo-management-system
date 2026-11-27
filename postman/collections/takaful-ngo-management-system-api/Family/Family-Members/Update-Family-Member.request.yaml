@@ -1,0 +1,101 @@
+$kind: http-request
+name: Update Family Member
+order: 4000
+method: PATCH
+url: '{{baseUrl}}/api/families/{{familyPublicId}}/members/{{familyMemberPublicId}}'
+description: |-
+  ## Update Family Member
+
+  Partially updates an existing family member's information. All fields are optional — only the fields provided will be updated.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | familyId  | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable. |
+  | memberId  | string | ✅ Yes   | The member's public ID (e.g. `MBR-000001`). Stored in the `familyMemberPublicId` environment variable. |
+
+  ### Request Body Fields (all optional)
+  | Field            | Type    | Description |
+  |------------------|---------|-------------|
+  | nationalId       | string  | 9-digit national ID number |
+  | fullName         | string  | Full name (3–200 characters) |
+  | gender           | enum    | `MALE` or `FEMALE` |
+  | birthDate        | date    | ISO 8601 date, cannot be in the future |
+  | relationship     | enum    | `HEAD`, `SPOUSE`, `SON`, `DAUGHTER`, `FATHER`, `MOTHER`, `BROTHER`, `SISTER`, `GRANDFATHER`, `GRANDMOTHER`, `OTHER` |
+  | phone            | string  | Phone number — format: `05XXXXXXXX` |
+  | educationLevel   | enum    | `NONE`, `KINDERGARTEN`, `PRIMARY`, `PREPARATORY`, `SECONDARY`, `DIPLOMA`, `BACHELOR`, `MASTER`, `PHD` |
+  | educationMajor   | string  | Required if educationLevel is `DIPLOMA`, `BACHELOR`, `MASTER`, or `PHD` |
+  | educationFees    | number  | Monthly education fees (≥ 0) |
+  | employmentStatus | enum    | `EMPLOYED`, `UNEMPLOYED`, `SELF_EMPLOYED`, `STUDENT`, `RETIRED`, `FREELANCER`, `OTHER` |
+  | monthlyIncome    | number  | Monthly income (≥ 0) |
+  | hasDisability    | boolean | Whether the member has a disability |
+  | disabilityType   | string  | Required if `hasDisability` is `true` |
+  | hasChronicDisease| boolean | Whether the member has a chronic disease |
+  | diseaseName      | string  | Required if `hasChronicDisease` is `true` |
+  | maritalStatus    | enum    | `SINGLE`, `MARRIED`, `DIVORCED`, `WIDOWED` |
+  | isOrphan         | boolean | Whether the member is an orphan |
+  | isBasedInGaza    | boolean | Whether the member is currently based in Gaza |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "MBR-000001",
+      "fullName": "Ahmed Mohammed Al-Masri",
+      "employmentStatus": "EMPLOYED",
+      "monthlyIncome": 1500,
+      "updatedAt": "2024-01-02T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (e.g. disabilityType required but missing)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No family or member found with the given IDs
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: familyId
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family (e.g. FAM-000001)'
+  - key: memberId
+    value: '{{familyMemberPublicId}}'
+    description: 'The public ID of the family member to update (e.g. MBR-000001)'
+body:
+  type: json
+  content: |-
+    {
+      "employmentStatus": "EMPLOYED",
+      "monthlyIncome": 1500,
+      "maritalStatus": "MARRIED",
+      "isBasedInGaza": true
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Member publicId is unchanged", () => {
+          pm.expect(pm.response.json().data.publicId).to.eql(pm.environment.get("familyMemberPublicId"));
+      });

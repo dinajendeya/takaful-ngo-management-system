@@ -1,0 +1,57 @@
+$kind: http-request
+name: Delete Category
+order: 5000
+method: DELETE
+url: '{{baseUrl}}/api/categories/{{categoryId}}'
+description: |-
+  ## Delete Category
+
+  Soft-deletes a catalog category. The category is marked as deleted but remains in the database for historical reference. Returns `204 No Content` on success.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Admin Only** — Only users with the `ADMIN` role are authorized to delete categories. This is stricter than create/update which also allow `BRANCH_MANAGER` and `INVENTORY_MANAGER`.
+
+  > ⚠️ **Constraint** — A category that still has items assigned to it **cannot** be deleted. Move or delete all items in the category first before attempting deletion.
+
+  ### Path Parameters
+  | Parameter | Type    | Required | Description |
+  |-----------|---------|----------|-------------|
+  | id        | integer | ✅ Yes   | The category's numeric ID. Stored in the `categoryId` environment variable. |
+
+  ### Success Response `204 No Content`
+  Empty response body — no content is returned on successful deletion.
+
+  ### Error Responses
+  - `400 Bad Request` — `id` is not a valid numeric value
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user is not an admin
+  - `404 Not Found` — No category found with the given ID
+  - `409 Conflict` — Category still has items assigned to it
+
+  ### Post-request Script
+  On success, the `categoryId` environment variable is cleared.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{categoryId}}'
+    description: 'The numeric ID of the category to delete (e.g. 1)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 204", () => {
+          pm.response.to.have.status(204);
+      });
+
+      if (pm.response.code === 204) {
+          pm.environment.unset("categoryId");
+      }

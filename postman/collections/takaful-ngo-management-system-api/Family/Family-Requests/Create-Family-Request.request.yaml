@@ -1,0 +1,105 @@
+$kind: http-request
+name: Create Family Request
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/family-requests'
+description: |-
+  ## Create Family Request
+
+  Allows an authenticated family to submit an update request — proposing changes to their own family data, assessment, or member list. The request is placed in `PENDING` status and must be reviewed and approved by an admin or branch manager before changes are applied.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header obtained from the **Family Login** endpoint.
+
+  > 🔒 **Family Principal Only** — Only tokens issued to a family (via `/family-auth/login`) are accepted.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  ### Request Body Fields
+  | Field           | Type   | Required | Description |
+  |-----------------|--------|----------|-------------|
+  | title           | string | ✅ Yes   | Short title describing the request (3–200 characters) |
+  | justification   | string | ❌ No    | Reason or context for the request (max 1000 characters) |
+  | family          | object | ❌ No    | Partial family fields to update (same as Update Family body, excluding password) |
+  | assessment      | object | ❌ No    | Partial assessment fields to update (same as Update Assessment body) |
+  | membersToCreate | array  | ❌ No    | Array of new family members to add (same schema as Create Family Member) |
+  | membersToUpdate | array  | ❌ No    | Array of existing members to update — each item must include `id` |
+  | membersToDelete | array  | ❌ No    | Array of member public IDs to remove |
+
+  ### Success Response `201 Created`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "publicId": "REQ-000001",
+      "title": "Update current address after displacement",
+      "status": "PENDING",
+      "justification": "We have moved to a new location in Deir Al-Balah.",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing title or invalid nested fields)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Token does not belong to a family principal, or password not yet changed
+
+  ### Post-request Script
+  On success, the `familyRequestPublicId` environment variable is automatically set.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Update current address after displacement",
+      "justification": "We have moved to a new location in Deir Al-Balah after our previous shelter was destroyed.",
+      "family": {
+        "currentAddress": {
+          "governorate": "DEIR_AL_BALAH",
+          "city": "Deir Al-Balah",
+          "neighborhood": "Al-Bureij",
+          "street": "Main Street",
+          "nearbyLandmark": "Near Al-Aqsa Martyrs Hospital"
+        }
+      },
+      "assessment": {
+        "housingType": "TENT",
+        "isDisplaced": true,
+        "hasElectricity": false
+      },
+      "membersToCreate": [],
+      "membersToUpdate": [],
+      "membersToDelete": []
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Request publicId is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("publicId");
+      });
+      pm.test("Request status is PENDING", () => {
+          pm.expect(pm.response.json().data.status).to.eql("PENDING");
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.publicId) {
+          pm.environment.set("familyRequestPublicId", data.publicId);
+      }

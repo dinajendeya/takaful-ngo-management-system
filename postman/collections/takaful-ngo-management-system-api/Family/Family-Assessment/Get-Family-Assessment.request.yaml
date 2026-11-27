@@ -1,0 +1,75 @@
+$kind: http-request
+name: Get Family Assessment
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/families/{{familyPublicId}}/assessment'
+description: |-
+  ## Get Family Assessment
+
+  Retrieves the socio-economic assessment for a specific family. Each family has at most one assessment record.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header.
+
+  > 🔒 **Password Change Required** — The family's password must have been changed from the initial one before this endpoint can be used.
+
+  ### Path Parameters
+  | Parameter | Type   | Required | Description |
+  |-----------|--------|----------|-------------|
+  | familyId  | string | ✅ Yes   | The family's public ID (e.g. `FAM-000001`). Stored in the `familyPublicId` environment variable. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": 1,
+      "monthlyFamilyIncome": 0,
+      "rentCost": null,
+      "housingType": "TENT",
+      "isDisplaced": true,
+      "isRegisteredInCamp": true,
+      "hasElectricity": false,
+      "hasInternet": false,
+      "notes": "Family displaced from Gaza City, currently sheltering in Rafah near the border.",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required privileges, or family password not yet changed
+  - `404 Not Found` — No family found with the given familyId, or no assessment exists yet
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: familyId
+    value: '{{familyPublicId}}'
+    description: 'The public ID of the family (e.g. FAM-000001)'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Assessment has housingType", () => {
+          pm.expect(pm.response.json().data).to.have.property("housingType");
+      });
+      pm.test("Assessment has monthlyFamilyIncome", () => {
+          pm.expect(pm.response.json().data).to.have.property("monthlyFamilyIncome");
+      });
+      pm.test("Assessment has isDisplaced", () => {
+          pm.expect(pm.response.json().data).to.have.property("isDisplaced");
+      });
