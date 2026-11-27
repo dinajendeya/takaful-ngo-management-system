@@ -1,0 +1,76 @@
+$kind: http-request
+name: Get All Projects
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/projects'
+description: |-
+  ## Get All Projects
+
+  Retrieves a list of all aid distribution projects in the system, ordered by creation date (newest first). Each project includes its full parcel target list with template details and the creator's display name.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. All authenticated users can view projects.
+
+  ### Query Parameters
+  No query parameters supported — returns all projects.
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "1",
+        "name": "Winter Relief 2024",
+        "description": "Emergency winter aid for displaced families",
+        "startDate": "2024-01-01T00:00:00.000Z",
+        "endDate": "2024-03-31T00:00:00.000Z",
+        "status": "ACTIVE",
+        "createdById": "1",
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "createdBy": { "id": "1", "fullName": "Admin User" },
+        "projectParcels": [
+          {
+            "projectId": "1",
+            "parcelTemplateId": "1",
+            "targetQuantity": 100,
+            "availableQuantity": 85,
+            "parcelTemplate": { "id": "1", "name": "Basic Food Parcel" }
+          }
+        ]
+      }
+    ]
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Data is an array", () => {
+          pm.expect(pm.response.json().data).to.be.an("array");
+      });
+      pm.test("Each project has id, name and status", () => {
+          pm.response.json().data.forEach(p => {
+              pm.expect(p).to.have.property("id");
+              pm.expect(p).to.have.property("name");
+              pm.expect(p).to.have.property("status");
+          });
+      });
+examples: './.resources/Get-All-Projects.resources/examples'

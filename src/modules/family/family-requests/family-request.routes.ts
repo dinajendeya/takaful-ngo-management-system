@@ -1,0 +1,23 @@
+import { Router } from "express";
+import { UserRole } from "../../../generated/prisma/enums.js";
+import { authenticate } from "../../../common/middlewares/authenticate.middleware.js";
+import { requireFamilyPasswordChanged } from "../../../common/middlewares/require-family-password-changed.middleware.js";
+import { authorize, authorizePrincipal } from "../../../common/middlewares/authorize.middleware.js";
+import { PrincipalType } from "../../../common/types/auth-user.js";
+import { paginationSchema } from "../../../common/schemas/pagination.schema.js";
+import { idSchema } from "../../../common/schemas/common.schema.js";
+import { validate } from "../../../common/middlewares/validate.middleware.js";
+import { z } from "zod";
+import * as controller from "./family-request.controller.js";
+import { cancelFamilyRequestSchema, rejectFamilyRequestSchema, updatingFamilyRequestSchema } from "./family-request.schema.js";
+
+const router = Router();
+const idParams = z.object({ id: idSchema });
+router.post("/", authenticate, authorizePrincipal(PrincipalType.FAMILY), requireFamilyPasswordChanged, validate(updatingFamilyRequestSchema), controller.create);
+router.get("/my", authenticate, authorizePrincipal(PrincipalType.FAMILY), requireFamilyPasswordChanged, validate(paginationSchema, "query"), controller.my);
+router.get("/pending", authenticate, authorize(UserRole.ADMIN, UserRole.BRANCH_MANAGER), validate(paginationSchema, "query"), controller.pending);
+router.get("/:id", authenticate, requireFamilyPasswordChanged, validate(idParams, "params"), controller.get);
+router.patch("/:id/cancel", authenticate, authorizePrincipal(PrincipalType.FAMILY), requireFamilyPasswordChanged, validate(idParams, "params"), validate(cancelFamilyRequestSchema), controller.cancel);
+router.patch("/:id/approve", authenticate, authorize(UserRole.ADMIN, UserRole.BRANCH_MANAGER), validate(idParams, "params"), controller.approve);
+router.patch("/:id/reject", authenticate, authorize(UserRole.ADMIN, UserRole.BRANCH_MANAGER), validate(idParams, "params"), validate(rejectFamilyRequestSchema), controller.reject);
+export default router;

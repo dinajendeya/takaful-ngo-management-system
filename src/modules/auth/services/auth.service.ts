@@ -112,3 +112,5 @@ export const me = async (id: string) => {
   if (!user) throw new Error("User not found");
   return user;
 };
+
+export const findUserById = async (id: string) => authRepository.findById(parseId(id));

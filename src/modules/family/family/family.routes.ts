@@ -1,0 +1,26 @@
+import { Router } from "express";
+import { authenticate } from "../../../common/middlewares/authenticate.middleware.js";
+import { requireFamilyPasswordChanged } from "../../../common/middlewares/require-family-password-changed.middleware.js";
+import { validate } from "../../../common/middlewares/validate.middleware.js";
+import { idSchema } from "../../../common/schemas/common.schema.js";
+import { paginationSchema } from "../../../common/schemas/pagination.schema.js";
+import { FamilyStatus } from "../../../generated/prisma/enums.js";
+import { z } from "zod";
+import * as controller from "./family.controller.js";
+import { createEmployeeFamilySchema, updateFamilySchema } from "./family.schema.js";
+import familyMemberRoutes from "../family-members/family-member.routes.js";
+import familyAssessmentRoutes from "../family-assessments/family-assessment.routes.js";
+
+const router = Router();
+const paramsSchema = z.object({ id: idSchema });
+const querySchema = paginationSchema.extend({ status: z.enum(FamilyStatus).optional(), branchId: idSchema.optional(), primaryPhone: z.string().optional() });
+router.post("/", authenticate, validate(createEmployeeFamilySchema), controller.create);
+router.get("/", authenticate, validate(querySchema, "query"), controller.list);
+router.get("/:id", authenticate, requireFamilyPasswordChanged, validate(paramsSchema, "params"), controller.get);
+router.patch("/:id", authenticate, requireFamilyPasswordChanged, validate(paramsSchema, "params"), validate(updateFamilySchema), controller.update);
+router.patch("/:id/verify", authenticate, requireFamilyPasswordChanged, validate(paramsSchema, "params"), controller.verify);
+router.patch("/:id/reject", authenticate, requireFamilyPasswordChanged, validate(paramsSchema, "params"), controller.reject);
+router.delete("/:id", authenticate, requireFamilyPasswordChanged, validate(paramsSchema, "params"), controller.remove);
+router.use("/:familyId/members", familyMemberRoutes);
+router.use("/:familyId/assessment", familyAssessmentRoutes);
+export default router;

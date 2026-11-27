@@ -1,0 +1,112 @@
+$kind: http-request
+name: Create Project
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/projects'
+description: |-
+  ## Create Project
+
+  Creates a new aid distribution project. A project defines a named campaign with a time range and a set of parcel targets — each linking a parcel template to a maximum quantity of parcels that can be distributed within the project. Available quantity is initialised equal to `targetQuantity` on creation.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only **ADMIN** and **BRANCH_MANAGER** roles are authorized to create projects.
+
+  ### Request Body Fields
+  | Field                      | Type            | Required | Description |
+  |----------------------------|-----------------|----------|-------------|
+  | name                       | string          | ✅ Yes   | Unique project name (1–200 characters) |
+  | description                | string          | ❌ No    | Detailed description of the project (max 5000 characters) |
+  | startDate                  | ISO date string | ✅ Yes   | Project start date (e.g. `"2024-01-01"`) |
+  | endDate                    | ISO date string | ❌ No    | Project end date |
+  | parcels                    | array           | ✅ Yes   | At least one parcel target entry |
+  | parcels[].parcelTemplateId | string (numeric)| ✅ Yes   | Numeric ID of the parcel template to include |
+  | parcels[].targetQuantity   | integer (≥ 0)   | ✅ Yes   | Maximum number of parcels to distribute |
+
+  ### Success Response `201 Created`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "1",
+      "name": "Winter Relief 2024",
+      "description": "Emergency winter aid for displaced families",
+      "startDate": "2024-01-01T00:00:00.000Z",
+      "endDate": "2024-03-31T00:00:00.000Z",
+      "status": "DRAFT",
+      "createdById": "1",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "createdBy": { "id": "1", "fullName": "Admin User" },
+      "projectParcels": [
+        {
+          "projectId": "1",
+          "parcelTemplateId": "1",
+          "targetQuantity": 100,
+          "availableQuantity": 100,
+          "parcelTemplate": { "id": "1", "name": "Basic Food Parcel" }
+        }
+      ]
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (missing fields, invalid date format, or non-positive targetQuantity)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required role
+  - `404 Not Found` — One or more `parcelTemplateId` values do not match any template
+
+  ### Post-request Script
+  On success, the `projectPublicId` environment variable is automatically set to the newly created project's numeric `id` for use in subsequent requests.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Winter Relief 2024",
+      "description": "Emergency winter aid for displaced families in Gaza",
+      "startDate": "2024-01-01",
+      "endDate": "2024-03-31",
+      "parcels": [
+        {
+          "parcelTemplateId": "{{parcelTemplateId}}",
+          "targetQuantity": 100
+        }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Project id is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("id");
+      });
+      pm.test("Project name matches", () => {
+          pm.expect(pm.response.json().data.name).to.eql("Winter Relief 2024");
+      });
+      pm.test("Project status is DRAFT", () => {
+          pm.expect(pm.response.json().data.status).to.eql("DRAFT");
+      });
+      pm.test("Project has projectParcels array", () => {
+          pm.expect(pm.response.json().data.projectParcels).to.be.an("array").with.length.above(0);
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.id) {
+          pm.environment.set("projectPublicId", data.id);
+      }
+examples: './.resources/Create-Project.resources/examples'

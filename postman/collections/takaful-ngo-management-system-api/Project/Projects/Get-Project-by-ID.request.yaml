@@ -1,0 +1,81 @@
+$kind: http-request
+name: Get Project by ID
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/projects/{{projectPublicId}}'
+description: |-
+  ## Get Project by ID
+
+  Retrieves the full details of a single aid distribution project using its numeric ID. Includes the parcel target list (with available vs target quantity) and the creator's name.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. All authenticated users can view projects.
+
+  ### Path Parameters
+  | Parameter | Type            | Required | Description |
+  |-----------|-----------------|----------|-------------|
+  | id        | string (numeric)| ✅ Yes   | The project's numeric ID (e.g. `1`). Stored in the `projectPublicId` environment variable after creating a project. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "1",
+      "name": "Winter Relief 2024",
+      "description": "Emergency winter aid for displaced families",
+      "startDate": "2024-01-01T00:00:00.000Z",
+      "endDate": "2024-03-31T00:00:00.000Z",
+      "status": "ACTIVE",
+      "createdById": "1",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "createdBy": { "id": "1", "fullName": "Admin User" },
+      "projectParcels": [
+        {
+          "projectId": "1",
+          "parcelTemplateId": "1",
+          "targetQuantity": 100,
+          "availableQuantity": 85,
+          "parcelTemplate": { "id": "1", "name": "Basic Food Parcel" }
+        }
+      ]
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — The provided ID is not a valid numeric string
+  - `401 Unauthorized` — Missing or invalid access token
+  - `404 Not Found` — No project found with the given ID
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{projectPublicId}}'
+    description: 'Numeric ID of the project (e.g. 1). Set automatically by the Create Project request.'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Project id matches", () => {
+          pm.expect(pm.response.json().data.id).to.eql(pm.environment.get("projectPublicId"));
+      });
+      pm.test("Project has projectParcels array", () => {
+          pm.expect(pm.response.json().data.projectParcels).to.be.an("array");
+      });
+      pm.test("Project has createdBy object", () => {
+          pm.expect(pm.response.json().data.createdBy).to.be.an("object");
+      });
+examples: './.resources/Get-Project-by-ID.resources/examples'

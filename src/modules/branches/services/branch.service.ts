@@ -20,6 +20,9 @@ export const getBranchById = async (id: string) => {
   return branch;
 };
 
+export const findBranchById = async (id: string) =>
+  branchRepository.findById(parseId(id));
+
 export const updateBranch = async (
   id: string,
   data: UpdateBranchDto

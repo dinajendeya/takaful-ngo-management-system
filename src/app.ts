@@ -5,14 +5,15 @@ import morgan from "morgan";
 
 import branchRoutes from "./modules/branches/branch.routes.js";
 import authRoutes from "./modules/auth/auth.routes.js";
-import familyRoutes from "./modules/family/routes/family.index.route.js";
+import familyRoutes from "./modules/family/family.index.route.js";
 import categoryRoutes from "./modules/catalog/categories/category.routes.js";
 import itemRoutes from "./modules/catalog/items/item.routes.js";
 import templateRoutes from "./modules/parcel/templates/template.routes.js"
 import inventoryRoutes from "./modules/inventory/inventories/inventory.routes.js"
 import projectRoutes from "./modules/project/projects/project.routes.js";
 import distributionRoutes from "./modules/project/distributions/distribution.routes.js";
-
+import donoruthRoutes from "./modules/donation/donor-auth/donor-auth.routes";
+import donorRoutes from "./modules/donation/donors/donor.routes.js";
 const app = express();
 
 app.use(express.json());

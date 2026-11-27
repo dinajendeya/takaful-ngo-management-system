@@ -1,7 +1,7 @@
 import { parseId } from "../../../common/utils/parseId.js";
 import * as distributionRepository from "./distribution.repository.js";
 import * as projectRepository from "../projects/project.repository.js";
-import * as familyRepository from "../../family/repositories/family.repository.js";
+import * as familyService from "../../family/family/family.service.js";
 import type { CreateDistributionDto, CreateDistributionData } from "./distribution.types.js";
 import type { AuthUser } from "../../../common/types/auth-user.js";
 import { UserRole } from "../../../generated/prisma/enums.js";
@@ -13,8 +13,7 @@ export const create = async (data: CreateDistributionDto, requestUser: AuthUser)
   const parcelTemplateId = parseId(data.parcelTemplateId);
 
   // 1. Fetch Dependencies
-  const family = await familyRepository.findFamilyById(familyId);
-  if (!family) throw new Error("Family not found");
+  const family = await familyService.getFamilyForDistribution(familyId.toString());
 
   const project = await projectRepository.findById(projectId);
   if (!project) throw new Error("Project not found");

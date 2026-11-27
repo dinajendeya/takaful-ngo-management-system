@@ -1,0 +1,75 @@
+$kind: http-request
+name: Get All Distributions
+order: 2000
+method: GET
+url: '{{baseUrl}}/api/distributions'
+description: |-
+  ## Get All Distributions
+
+  Retrieves a list of all recorded parcel distribution events, ordered by distribution date (newest first). Each record includes the recipient family, branch, project, parcel template, and the staff member who executed the distribution.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only **ADMIN**, **BRANCH_MANAGER**, and **DISTRIBUTOR** roles can access this endpoint.
+
+  ### Branch Scoping
+  - **ADMIN**: sees all distributions across all branches
+  - **BRANCH_MANAGER** and **DISTRIBUTOR**: see only distributions from their own branch
+
+  ### Query Parameters
+  No query parameters supported — returns all accessible distributions.
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "1",
+        "familyId": "1",
+        "branchId": "1",
+        "projectId": "1",
+        "parcelTemplateId": "1",
+        "distributedById": "1",
+        "distributedAt": "2024-01-15T10:00:00.000Z",
+        "notes": "Delivered to family representative",
+        "family": { "id": "1", "publicId": "FAM-000001", "primaryPhone": "0599000001" },
+        "branch": { "id": "1", "name": "Gaza City Branch" },
+        "project": { "id": "1", "name": "Winter Relief 2024" },
+        "parcelTemplate": { "id": "1", "name": "Basic Food Parcel" },
+        "distributedBy": { "id": "1", "fullName": "Field Distributor" }
+      }
+    ]
+  }
+  ```
+
+  ### Error Responses
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Authenticated user lacks required role (e.g. FIELD_RESEARCHER or INVENTORY_MANAGER)
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Data is an array", () => {
+          pm.expect(pm.response.json().data).to.be.an("array");
+      });
+      pm.test("Each distribution has id and distributedAt", () => {
+          pm.response.json().data.forEach(d => {
+              pm.expect(d).to.have.property("id");
+              pm.expect(d).to.have.property("distributedAt");
+          });
+      });
+examples: './.resources/Get-All-Distributions.resources/examples'

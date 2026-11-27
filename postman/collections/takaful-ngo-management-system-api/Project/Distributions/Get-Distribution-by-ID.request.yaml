@@ -1,0 +1,83 @@
+$kind: http-request
+name: Get Distribution by ID
+order: 3000
+method: GET
+url: '{{baseUrl}}/api/distributions/{{distributionPublicId}}'
+description: |-
+  ## Get Distribution by ID
+
+  Retrieves the full details of a single distribution record using its numeric ID. Includes the recipient family, branch, project, parcel template used, and the staff member who performed the distribution.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only **ADMIN**, **BRANCH_MANAGER**, and **DISTRIBUTOR** roles can access this endpoint.
+
+  ### Branch Scoping
+  **BRANCH_MANAGER** and **DISTRIBUTOR** can only retrieve distribution records that belong to their own branch. Attempting to access a record from a different branch returns `403 Forbidden`.
+
+  ### Path Parameters
+  | Parameter | Type            | Required | Description |
+  |-----------|-----------------|----------|-------------|
+  | id        | string (numeric)| ✅ Yes   | The distribution record's numeric ID (e.g. `1`). Stored in the `distributionPublicId` environment variable after creating a distribution. |
+
+  ### Success Response `200 OK`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "1",
+      "familyId": "1",
+      "branchId": "1",
+      "projectId": "1",
+      "parcelTemplateId": "1",
+      "distributedById": "1",
+      "distributedAt": "2024-01-15T10:00:00.000Z",
+      "notes": "Delivered to family representative",
+      "family": { "id": "1", "publicId": "FAM-000001", "primaryPhone": "0599000001" },
+      "branch": { "id": "1", "name": "Gaza City Branch" },
+      "project": { "id": "1", "name": "Winter Relief 2024" },
+      "parcelTemplate": { "id": "1", "name": "Basic Food Parcel" },
+      "distributedBy": { "id": "1", "fullName": "Field Distributor" }
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — The provided ID is not a valid numeric string
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Insufficient role, or the record belongs to a different branch
+  - `404 Not Found` — No distribution record found with the given ID
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Accept
+    value: application/json
+pathVariables:
+  - key: id
+    value: '{{distributionPublicId}}'
+    description: 'Numeric ID of the distribution record (e.g. 1). Set automatically by the Create Distribution request.'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 200", () => {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Distribution id matches", () => {
+          pm.expect(pm.response.json().data.id).to.eql(pm.environment.get("distributionPublicId"));
+      });
+      pm.test("Distribution has family object", () => {
+          pm.expect(pm.response.json().data.family).to.be.an("object");
+      });
+      pm.test("Distribution has branch object", () => {
+          pm.expect(pm.response.json().data.branch).to.be.an("object");
+      });
+      pm.test("Distribution has distributedAt timestamp", () => {
+          pm.expect(pm.response.json().data).to.have.property("distributedAt");
+      });
+examples: './.resources/Get-Distribution-by-ID.resources/examples'

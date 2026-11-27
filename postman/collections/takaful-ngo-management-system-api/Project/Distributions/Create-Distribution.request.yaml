@@ -1,0 +1,110 @@
+$kind: http-request
+name: Create Distribution
+order: 1000
+method: POST
+url: '{{baseUrl}}/api/distributions'
+description: |-
+  ## Create Distribution
+
+  Records a parcel distribution event — delivering one parcel to a family under a specific project. The operation is **atomic**: the project's `availableQuantity` for the matching parcel template is decremented by 1 in the same transaction.
+
+  ### Authorization
+  Requires a valid **Bearer JWT access token** in the `Authorization` header. Only **ADMIN**, **BRANCH_MANAGER**, and **DISTRIBUTOR** roles are authorized.
+
+  ### Branch Scoping
+  **BRANCH_MANAGER** and **DISTRIBUTOR** roles can only distribute to families that belong to their own branch. Attempting to distribute to a family from a different branch returns `403 Forbidden`.
+
+  ### Business Rules
+  - The `parcelTemplateId` must be one of the parcels listed in the project (`projectParcels`)
+  - The project must have `availableQuantity > 0` for that template, otherwise the request is rejected
+  - A family can only receive **one parcel per project** (`familyId + projectId` unique constraint). A second distribution for the same combination returns `409 Conflict`
+
+  ### Request Body Fields
+  | Field           | Type            | Required | Description |
+  |-----------------|-----------------|----------|-------------|
+  | familyId        | string (numeric)| ✅ Yes   | Numeric ID of the recipient family |
+  | projectId       | string (numeric)| ✅ Yes   | Numeric ID of the project. Use `{{projectPublicId}}` (set by Create Project) |
+  | parcelTemplateId| string (numeric)| ✅ Yes   | Numeric ID of the parcel template to distribute. Must be listed in the project. Use `{{parcelTemplateId}}` |
+  | notes           | string          | ❌ No    | Distribution notes (max 5000 characters) |
+
+  ### Success Response `201 Created`
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "1",
+      "familyId": "1",
+      "branchId": "1",
+      "projectId": "1",
+      "parcelTemplateId": "1",
+      "distributedById": "1",
+      "distributedAt": "2024-01-15T10:00:00.000Z",
+      "notes": "Delivered to family representative",
+      "family": { "id": "1", "publicId": "FAM-000001", "primaryPhone": "0599000001" },
+      "branch": { "id": "1", "name": "Gaza City Branch" },
+      "project": { "id": "1", "name": "Winter Relief 2024" },
+      "parcelTemplate": { "id": "1", "name": "Basic Food Parcel" },
+      "distributedBy": { "id": "1", "fullName": "Field Distributor" }
+    }
+  }
+  ```
+
+  ### Error Responses
+  - `400 Bad Request` — Validation failed (non-numeric IDs or missing required fields)
+  - `401 Unauthorized` — Missing or invalid access token
+  - `403 Forbidden` — Insufficient role, or family belongs to a different branch
+  - `404 Not Found` — Family, project, or parcel template not found; or the template is not part of this project
+  - `409 Conflict` — This family has already received a parcel for this project, or no available parcels remain
+
+  ### Post-request Script
+  On success, the `distributionPublicId` environment variable is automatically set to the newly created distribution's numeric `id`.
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{accessToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: Accept
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "familyId": "1",
+      "projectId": "{{projectPublicId}}",
+      "parcelTemplateId": "{{parcelTemplateId}}",
+      "notes": "Delivered to family representative at branch office"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status is 201", () => {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Success is true", () => {
+          pm.expect(pm.response.json().success).to.eql(true);
+      });
+      pm.test("Distribution id is present", () => {
+          pm.expect(pm.response.json().data).to.have.property("id");
+      });
+      pm.test("Distribution has family object", () => {
+          pm.expect(pm.response.json().data.family).to.be.an("object");
+      });
+      pm.test("Distribution has project object", () => {
+          pm.expect(pm.response.json().data.project).to.be.an("object");
+      });
+      pm.test("Distribution has parcelTemplate object", () => {
+          pm.expect(pm.response.json().data.parcelTemplate).to.be.an("object");
+      });
+      pm.test("Distribution has distributedBy object", () => {
+          pm.expect(pm.response.json().data.distributedBy).to.be.an("object");
+      });
+
+      const data = pm.response.json().data;
+      if (data && data.id) {
+          pm.environment.set("distributionPublicId", data.id);
+      }
+examples: './.resources/Create-Distribution.resources/examples'
