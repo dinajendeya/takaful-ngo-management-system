@@ -11,4 +11,5 @@ export interface AuthUser {
   principalType: PrincipalType;
   role?: UserRole;
   branchId?: string | null;
+  mustChangePassword?: boolean;
 }

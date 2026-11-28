@@ -3,7 +3,7 @@ import { hashPassword } from "../../../common/utils/password.js";
 import { parseId } from "../../../common/utils/parseId.js";
 import { FamilyStatus, UserRole } from "../../../generated/prisma/enums.js";
 import { PrincipalType, type AuthUser } from "../../../common/types/auth-user.js";
-import * as authService from "../../auth/services/auth.service.js";
+import * as userService from "../../auth/users/user.service.js";
 import * as branchService from "../../branches/services/branch.service.js";
 import * as familyRepository from "./family.repository.js";
 import { createEmployeeFamilySchema, updateFamilySchema } from "./family.schema.js";
@@ -13,7 +13,7 @@ const isFamilyStaffRole = (role: UserRole) => role === UserRole.ADMIN || role ==
 
 const getStaffActor = async (actor: AuthUser) => {
   if (actor.principalType !== PrincipalType.USER) throw new Error("Forbidden");
-  const user = await authService.findUserById(actor.sub);
+  const user = await userService.findUserById(actor.sub);
   if (!user || !user.isActive || !isFamilyStaffRole(user.role)) throw new Error("Forbidden");
   return user;
 };

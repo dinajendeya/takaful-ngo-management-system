@@ -4,7 +4,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import branchRoutes from "./modules/branches/branch.routes.js";
-import authRoutes from "./modules/auth/auth.routes.js";
+import authRoutes from "./modules/auth/user-auth/auth.routes.js";
+import userRoutes from "./modules/auth/users/user.routes.js";
 import familyRoutes from "./modules/family/family.index.route.js";
 import categoryRoutes from "./modules/catalog/categories/category.routes.js";
 import itemRoutes from "./modules/catalog/items/item.routes.js";
@@ -22,6 +23,7 @@ app.use(helmet());
 app.use(morgan("dev"));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api", familyRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/categories", categoryRoutes);

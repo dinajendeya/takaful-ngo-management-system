@@ -651,11 +651,12 @@ CHECK (
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | name | VARCHAR(255) | NOT NULL | |
 | currency | VARCHAR(10) | NOT NULL | |
 | description | TEXT | | |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | |
+| isActive | boolena | NOT NULL, DEFAULT NOW() | |
+
 
 **`expense_categories`**
 
@@ -670,7 +671,6 @@ CHECK (
 | Column | Type | Constraints | References |
 |---|---|---|---|
 | id | BIGSERIAL | PK | |
-| public_id | VARCHAR(20) | NOT NULL, UNIQUE | |
 | transaction_type | financial_transaction_type | NOT NULL | |
 | source_type | financial_entity_type | NOT NULL | |
 | source_id | BIGINT | NOT NULL | |

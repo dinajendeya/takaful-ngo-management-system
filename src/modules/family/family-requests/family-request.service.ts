@@ -2,7 +2,7 @@ import { parseId } from "../../../common/utils/parseId.js";
 import { PrincipalType, type AuthUser } from "../../../common/types/auth-user.js";
 import { FamilyRequestStatus, UserRole } from "../../../generated/prisma/enums.js";
 import { Relationship } from "../../../generated/prisma/enums.js";
-import * as authService from "../../auth/services/auth.service.js";
+import * as userService from "../../auth/users/user.service.js";
 import * as familyMemberService from "../family-members/family-member.service.js";
 import * as familyService from "../family/family.service.js";
 import * as familyRequestRepository from "./family-request.repository.js";
@@ -11,7 +11,7 @@ import type { CancelFamilyRequestDto, FamilyRequestChanges, RejectFamilyRequestD
 import { buildUpdateFamilyChanges, createBeforeSnapshot, createUpdateSnapshot, serializeSnapshot, toFamilyRequestSnapshot } from "./family-request.mapper.js";
 
 const ensureReviewer = async (reviewerId: string) => {
-  const reviewer = await authService.findUserById(reviewerId);
+  const reviewer = await userService.findUserById(reviewerId);
   if (!reviewer || !reviewer.isActive || (reviewer.role !== UserRole.ADMIN && reviewer.role !== UserRole.BRANCH_MANAGER)) throw new Error("Only admin or branch manager users can review requests");
   return reviewer;
 };
@@ -53,7 +53,7 @@ export const createUpdateRequest = async (data: UpdatingFamilyRequestDto, actor:
 
 type FamilyRequestRecord = NonNullable<Awaited<ReturnType<typeof familyRequestRepository.findFamilyRequestById>>>;
 
-const approveUpdateRequest = async (request: FamilyRequestRecord, reviewer: NonNullable<Awaited<ReturnType<typeof authService.findUserById>>>) => {
+const approveUpdateRequest = async (request: FamilyRequestRecord, reviewer: NonNullable<Awaited<ReturnType<typeof userService.findUserById>>>) => {
   const snapshot = toFamilyRequestSnapshot(request.afterData);
   const updateFamilyId = request.familyId;
   if (!updateFamilyId) throw new Error("Update request is missing its family");
@@ -161,7 +161,7 @@ export const getRequestById = async (requestId: string, actor: AuthUser) => {
   if (!request) throw new Error("Family request not found");
   if (actor.principalType === PrincipalType.FAMILY && request.familyId !== parseId(actor.sub)) throw new Error("Family request not found");
   if (actor.principalType === PrincipalType.USER) {
-    const user = await authService.findUserById(actor.sub);
+    const user = await userService.findUserById(actor.sub);
     if (!user || !user.isActive) throw new Error("Forbidden");
     if (user.role === UserRole.BRANCH_MANAGER && user.branchId !== request.family.branchId) throw new Error("Family request not found");
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.BRANCH_MANAGER) throw new Error("Forbidden");

@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../utils/jwt.js";
+import { requirePasswordChanged } from "./require-password-changed.middleware.js";
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   const authorization = req.headers.authorization;
@@ -9,6 +10,6 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
 
   try {
     req.user = verifyAccessToken(token);
-    return next();
+    return requirePasswordChanged(req, res, next);
   } catch { return res.status(401).json({ success: false, message: "Invalid token" }) }
 };

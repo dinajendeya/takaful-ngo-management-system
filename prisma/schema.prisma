@@ -191,18 +191,19 @@ model Branch {
 }
 
 model User {
-  id           BigInt    @id @default(autoincrement())
-  branchId     BigInt?   @map("branch_id")
-  fullName     String    @map("full_name") @db.VarChar(150)
-  email        String    @unique @db.VarChar(255)
-  passwordHash String    @map("password_hash")
-  refreshToken String?   @unique @map("refresh_token")
-  role         UserRole
-  phone        String?   @db.VarChar(30)
-  isActive     Boolean   @default(true) @map("is_active")
-  lastLoginAt  DateTime? @map("last_login_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id                 BigInt    @id @default(autoincrement())
+  branchId           BigInt?   @map("branch_id")
+  fullName           String    @map("full_name") @db.VarChar(150)
+  email              String    @unique @db.VarChar(255)
+  passwordHash       String    @map("password_hash")
+  refreshToken       String?   @unique @map("refresh_token")
+  role               UserRole
+  phone              String?   @db.VarChar(30)
+  isActive           Boolean   @default(true) @map("is_active")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  lastLoginAt        DateTime? @map("last_login_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   branch Branch? @relation(fields: [branchId], references: [id])
 
